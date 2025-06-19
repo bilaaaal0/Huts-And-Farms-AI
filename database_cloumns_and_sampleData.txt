@@ -1,0 +1,82 @@
+Here's the conversion of the column names and sample data to English:
+
+```
+===== Booking-Reservation (mb92g41bhfubow2) =====
+Columns:
+ - Id
+ - CreatedAt
+ - UpdatedAt
+ - Reservation ID
+ - Ready?
+ - Start Slot
+ - End Slot
+ - Client Whatsapp Phone
+ - Client Name
+ - Reservation Status
+ - Retailer Conf MSG 1 Time
+ - Client Conf MSG 1 Time
+ - Client Conf MSG 2 Time
+ - Retailer Conf MSG 2 Time
+ - MSG 3
+ - MSG 2
+ - C MSG 1
+ - C MSG 3
+ - C MSG 2
+ - MSG 1
+ - Booking Day
+ - Business Name
+ - Booked Quantity
+ - Client Email
+ - Client City
+ - Business City
+ - Business Whatsapp Phone
+ - Final Total Price Including Tax
+ - Final Total Price with Delivery Fees
+ - Comments
+ - Offer
+ - Payment
+ - WA Convo ID
+ - Retailer WA Convo ID
+ - Reservation Type
+ - Client and Retailer Reminder
+ - Google Reviews MSG
+ - Google Reviews Rating
+
+Sample Data:
+{'Id': 1, 
+'CreatedAt': '2025-05-10 11:46:47+00:00', 
+'UpdatedAt': '2025-06-17 14:32:58+00:00', 
+'Reservation ID': '#RES-QC000000', 
+'Ready?': True, 
+'Start Slot': '2025-06-17 01:00:00+00:00', 
+'End Slot': '2025-06-11 03:30:00+00:00', 
+'Client Whatsapp Phone': '212609033394', 
+'Client Name': 'hamza lam', 
+'Reservation Status': 'Client Confirmed', 
+'Retailer Conf MSG 1 Time': '2025-06-17 14:10:00+00:00', 
+'Client Conf MSG 1 Time': '2025-06-17 14:10:00+00:00', 
+'Client Conf MSG 2 Time': None, 
+'Retailer Conf MSG 2 Time': '2025-06-17 14:20:00+00:00', 
+'MSG 3': False, 'MSG 2': False, 
+'C MSG 1': True, 'C MSG 3': False, 
+'C MSG 2': True, 'MSG 1': True, 
+'Booking Day': '2025-06-17 11:15:00+00:00', 
+'Business Name': 'Rachid Hotam', 
+'Booked Quantity': 1, 
+'Client Email': None, 
+'Client City': None, 
+'Business City': None, 
+'Business Whatsapp Phone': '212609033394', 
+'Final Total Price Including Tax': '1000 MAD', 
+'Final Total Price with Delivery Fees': None, 
+'Comments': 'food included', 
+'Offer': 'Riad a tenger', 
+'Payment': 'cash', 
+'WA Convo ID': '', 
+'Retailer WA Convo ID': '', 
+'Reservation Type': 
+'Instante', 
+'Client and Retailer Reminder': False, 
+'Google Reviews MSG': False, 
+'Google Reviews Rating': 0}
+```
