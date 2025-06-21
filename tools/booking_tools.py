@@ -36,19 +36,22 @@ def check_reservation_by_client(client_email: str) -> str:
 
 # final_total_price_incl_tax: Final price including tax (e.g., '1000 MAD').
 #         reservation_id: ID of the reservation (e.g., "#RES-QC000000").
+        # reservation_type: Type of the reservation (default 'Instante').
+        # reservation_status: Status of the reservation (default 'Client Confirmed').
+        # ready: Whether it's ready (default True).
 
 @tool("create_reservation_for_client")
 def create_reservation_for_client(
     client_name: str,
     client_whatsapp: str,
     client_email: str,
-    business_name: str,
-    booked_quantity: int,
-    reservation_type: str = "Instante",
-    reservation_status: str = "Client Confirmed",
-    ready: bool = True,
-    start_slot: Optional[str] = None,
-    end_slot: Optional[str] = None,
+    hotel_name: str,
+    no_of_reservations: int,
+    # reservation_type: str = "Instante",
+    # reservation_status: str = "Client Confirmed",
+    # ready: bool = True,
+    starting_date_time: str,
+    ending_date_time: str,
     **extra_fields
 ) -> str:
     """
@@ -58,13 +61,10 @@ def create_reservation_for_client(
         client_name: Name of the client.
         client_whatsapp: Client's WhatsApp phone.
         client_email: Client's email.
-        business_name: Name of the business.
-        booked_quantity: Number of booked units.
-        reservation_type: Type of the reservation (default 'Instante').
-        reservation_status: Status of the reservation (default 'Client Confirmed').
-        ready: Whether it's ready (default True).
-        start_slot: Start of the booking in iso format
-        end_slot: End of the booking in iso format
+        hotel_name: Name of the hotel the client want to reserve.
+        no_of_reservations: Number of rooms/suits/etc to be reserved/booked.
+        starting_date_time: Start of the booking in iso format
+        ending_date_time: End of the booking in iso format
         **extra_fields: Additional fields as needed.
 
     Returns:
@@ -76,20 +76,18 @@ def create_reservation_for_client(
         "Tel Whatsapp Client": client_whatsapp,
         "Email Client": client_email,
         "jour de booking": datetime.now(timezone.utc).isoformat(),
-        "Nom du commerce": business_name,
-        "Qté bookée": booked_quantity,
+        "Nom du commerce": hotel_name,
+        "Qté bookée": no_of_reservations,
         # "Prix final total TTC": final_total_price_incl_tax,
-        "Reservation Type": reservation_type,
-        "Réservation Statut": reservation_status,
-        "Pret?": ready,
-        "Créneau de début": start_slot,
-        "Créneau de fin": end_slot
+        # "Reservation Type": reservation_type or "Instante",
+        "Reservation Type": "Instante",
+        # "Réservation Statut": reservation_status or "Client Confirmed",
+        "Réservation Statut": "Client Confirmed",
+        # "Pret?": ready if ready is not None else True,
+        "Pret?": True,
+        "Créneau de début": starting_date_time,
+        "Créneau de fin": ending_date_time
     }
-
-    if start_slot:
-        payload["Créneau de début"] = start_slot
-    if end_slot:
-        payload["Créneau de fin"] = end_slot
 
     payload.update(extra_fields)
 
@@ -278,62 +276,115 @@ def check_reservation_info(session_id: str, question: str) -> str:
     if not reservations:
         return f"No reservations found for {client_email}."
 
-    # Normalize question
-    q = question.lower()
+    lines = []
+    for r in reservations:
+        fields = {
+            "ID Réservation": "ID Réservation",
+            "Réservation Statut": "Réservation Statut",
+            "Pret?": "Pret?",
+            "Reservation Type": "Reservation Type",
+            "jour de booking": "jour de booking",
+            "Créneau de début": "Créneau de début",
+            "Créneau de fin": "Créneau de fin",
+            "Nom Client": "Nom Client",
+            "Tel Whatsapp Client": "Tel Whatsapp Client",
+            "Client Conf MSG 1 Time": "Client Conf MSG 1 Time",
+            "MSG 1": "MSG 1",
+            "Client Conf MSG 2 Time": "Client Conf MSG 2 Time",
+            "MSG 2": "MSG 2",
+            "MSG 3": "MSG 3",
+            "Retailer Conf MSG 1 Time": "Retailer Conf MSG 1 Time",
+            "C MSG 1": "C MSG 1",
+            "Retailer Conf MSG 2 Time": "Retailer Conf MSG 2 Time",
+            "C MSG 2": "C MSG 2",
+            "C MSG 3": "C MSG 3",
+            "Retailer WA Convo ID": "Retailer WA Convo ID",
+            "WA Convo ID": "WA Convo ID",
+            "Rappel Client et Retailer": "Rappel Client et Retailer",
+            "Google Reviews MSG": "Google Reviews MSG",
+            "Google Reviews Rating": "Google Reviews Rating",
+            "Nom du commerce": "Nom du commerce",
+            "Tel Whatsapp du commerce": "Tel Whatsapp du commerce",
+            "Qté bookée": "Qté bookée",
+            "Prix final total TTC": "Prix final total TTC",
+            "Commentaires": "Commentaires",
+            "Offer": "Offer",
+            "Paiement": "Paiement",
+            "Email Client": "Email Client",
+            "Prix final Total avec frais de livraison": "Prix final Total avec frais de livraison",
+            "Ville du Commerce": "Ville du Commerce",
+            "Ville du client": "Ville du client",
+        }
 
-    # 1. Total reservations
-    if "how many" in q or "total reservations" in q:
-        return f"You have {len(reservations)} reservation(s)."
+        line_parts = []
+        for key, label in fields.items():
+            value = r.get(key)
+            if value is not None and value != "":
+                line_parts.append(f"{label}: {value}")
 
-    # 2. Latest reservation
-    if "latest" in q or "recent" in q:
-        latest = sorted(reservations, key=lambda r: r.get("CreatedAt", ""), reverse=True)[0]
-        return f"Latest reservation ID: {latest.get('Reservation ID', 'N/A')}, Status: {latest.get('Reservation Status', 'N/A')}."
+        line = " | ".join(line_parts)
 
-    # 3. Status breakdown
-    if "status" in q:
-        statuses = {}
-        for r in reservations:
-            status = r.get("Reservation Status", "Unknown")
-            statuses[status] = statuses.get(status, 0) + 1
-        return "\n".join([f"{s}: {c}" for s, c in statuses.items()])
+        lines.append(line)
 
-    # 4. Total Price
-    if "price" in q or "total price" in q:
-        prices = [r.get("Final Total Price Including Tax") for r in reservations if r.get("Final Total Price Including Tax")]
-        return f"Prices found: {', '.join(prices)}" if prices else "No prices found."
+        # lines.append(f"ID: {r.get('Reservation ID')} | Date: {r.get('Booking Day') or r.get('jour de booking')} | Status: {r.get('Reservation Status')}")
+    return "\n".join(lines)
 
-    # 5. Upcoming reservations
-    if "upcoming" in q or "future" in q:
-        upcoming = [
-            r for r in reservations
-            if r.get("Start Slot") and datetime.fromisoformat(r["Start Slot"].replace("Z", "+00:00")) > datetime.utcnow()
-        ]
-        return f"You have {len(upcoming)} upcoming reservation(s)."
+    # # Normalize question
+    # q = question.lower()
 
-    # ✅ 6. Reservation dates
-    if "date" in q or "when" in q or "day" in q:
-        dates = []
-        for r in reservations:
-            date_str = r.get("Booking Day") or r.get("jour de booking")  # handle French/English fields
-            if date_str:
-                try:
-                    dt = datetime.fromisoformat(date_str.replace("Z", "+00:00"))
-                    dates.append(dt.strftime("%Y-%m-%d"))
-                except Exception:
-                    dates.append(date_str)
-        if dates:
-            return f"Your reservation dates: {', '.join(dates)}"
-        else:
-            return "No reservation dates found."
+    # # 1. Total reservations
+    # if "how many" in q or "total reservations" in q:
+    #     return f"You have {len(reservations)} reservation(s)."
 
-    # 7. All details (optional)
-    if "details" in q or "show all" in q:
-        lines = []
-        for r in reservations:
-            lines.append(f"ID: {r.get('Reservation ID')} | Date: {r.get('Booking Day') or r.get('jour de booking')} | Status: {r.get('Reservation Status')}")
-        return "\n".join(lines)
+    # # 2. Latest reservation
+    # if "latest" in q or "recent" in q:
+    #     latest = sorted(reservations, key=lambda r: r.get("CreatedAt", ""), reverse=True)[0]
+    #     return f"Latest reservation ID: {latest.get('Reservation ID', 'N/A')}, Status: {latest.get('Reservation Status', 'N/A')}."
 
-    # Default fallback
-    return f"Found {len(reservations)} reservation(s). Try asking for 'status', 'date', 'price', 'latest', or 'upcoming'."
+    # # 3. Status breakdown
+    # if "status" in q:
+    #     statuses = {}
+    #     for r in reservations:
+    #         status = r.get("Reservation Status", "Unknown")
+    #         statuses[status] = statuses.get(status, 0) + 1
+    #     return "\n".join([f"{s}: {c}" for s, c in statuses.items()])
+
+    # # 4. Total Price
+    # if "price" in q or "total price" in q:
+    #     prices = [r.get("Final Total Price Including Tax") for r in reservations if r.get("Final Total Price Including Tax")]
+    #     return f"Prices found: {', '.join(prices)}" if prices else "No prices found."
+
+    # # 5. Upcoming reservations
+    # if "upcoming" in q or "future" in q:
+    #     upcoming = [
+    #         r for r in reservations
+    #         if r.get("Start Slot") and datetime.fromisoformat(r["Start Slot"].replace("Z", "+00:00")) > datetime.utcnow()
+    #     ]
+    #     return f"You have {len(upcoming)} upcoming reservation(s)."
+
+    # # ✅ 6. Reservation dates
+    # if "date" in q or "when" in q or "day" in q:
+    #     dates = []
+    #     for r in reservations:
+    #         date_str = r.get("Booking Day") or r.get("jour de booking")  # handle French/English fields
+    #         if date_str:
+    #             try:
+    #                 dt = datetime.fromisoformat(date_str.replace("Z", "+00:00"))
+    #                 dates.append(dt.strftime("%Y-%m-%d"))
+    #             except Exception:
+    #                 dates.append(date_str)
+    #     if dates:
+    #         return f"Your reservation dates: {', '.join(dates)}"
+    #     else:
+    #         return "No reservation dates found."
+
+    # # 7. All details (optional)
+    # if "details" in q or "show all" in q:
+    #     lines = []
+    #     for r in reservations:
+    #         lines.append(f"ID: {r.get('Reservation ID')} | Date: {r.get('Booking Day') or r.get('jour de booking')} | Status: {r.get('Reservation Status')}")
+    #     return "\n".join(lines)
+
+    # # Default fallback
+    # return f"Found {len(reservations)} reservation(s). Try asking for 'status', 'date', 'price', 'latest', or 'upcoming'."
 
