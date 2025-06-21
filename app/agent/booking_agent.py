@@ -106,6 +106,7 @@ from app.chatbot.models import Session, Message, Client
 from tools.booking_tools import (
     authenticate_email,
     check_reservation_info,
+    create_reservation_for_client,
 )
 from tools.misc_tools import sum_tool
 
@@ -132,13 +133,14 @@ Date: {date}
 
 ### Authentication Rules:
 - If `{client_email}` is `"unauthenticated"` , you must first run the `authenticate_email` tool to collect and verify the client's email.
-- If `{client_email}` contains an email (e.g. "example@gmail.com"), the client is authenticated, and you may use this email to query their reservation data.
+- If `{client_email}` contains an email (e.g. "example@gmail.com"), the client is authenticated, and you may use this email to query their reservation data and make reservation for them.
 
 ---
 
 ### Capabilities:
 - Authenticate users using email
 - Query reservations or booking data
+- Make reservation for client
 - Only answer database questions based on verified client email
 - Log users out or refresh their token if needed
 
@@ -164,7 +166,8 @@ class BookingToolAgent:
         self.tools = [
             sum_tool,
             check_reservation_info,
-            authenticate_email
+            authenticate_email,
+            create_reservation_for_client
         ]
 
         self.llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)

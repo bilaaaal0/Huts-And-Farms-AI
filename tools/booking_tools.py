@@ -2,6 +2,8 @@ from langchain_core.tools import tool
 import requests
 import os
 from dotenv import load_dotenv
+from typing import Optional
+from datetime import datetime, timezone
 
 load_dotenv()
 BASE_URL = os.getenv("NOCODB_BASE_URL")
@@ -32,6 +34,73 @@ def check_reservation_by_client(client_email: str) -> str:
     # Customize the info you want to return
     return f"Found {len(records)} reservation(s) for {client_email}. Example: ID Réservation = {records[0].get('ID Réservation')}"
 
+# final_total_price_incl_tax: Final price including tax (e.g., '1000 MAD').
+#         reservation_id: ID of the reservation (e.g., "#RES-QC000000").
+
+@tool("create_reservation_for_client")
+def create_reservation_for_client(
+    client_name: str,
+    client_whatsapp: str,
+    client_email: str,
+    business_name: str,
+    booked_quantity: int,
+    reservation_type: str = "Instante",
+    reservation_status: str = "Client Confirmed",
+    ready: bool = True,
+    start_slot: Optional[str] = None,
+    end_slot: Optional[str] = None,
+    **extra_fields
+) -> str:
+    """
+    Create a new reservation for a client.
+
+    Args:
+        client_name: Name of the client.
+        client_whatsapp: Client's WhatsApp phone.
+        client_email: Client's email.
+        business_name: Name of the business.
+        booked_quantity: Number of booked units.
+        reservation_type: Type of the reservation (default 'Instante').
+        reservation_status: Status of the reservation (default 'Client Confirmed').
+        ready: Whether it's ready (default True).
+        start_slot: Start of the booking in iso format
+        end_slot: End of the booking in iso format
+        **extra_fields: Additional fields as needed.
+
+    Returns:
+        str: Result message from the operation.
+    """
+    payload = {
+        # "ID Réservation": reservation_id,
+        "Nom Client": client_name,
+        "Tel Whatsapp Client": client_whatsapp,
+        "Email Client": client_email,
+        "jour de booking": datetime.now(timezone.utc).isoformat(),
+        "Nom du commerce": business_name,
+        "Qté bookée": booked_quantity,
+        # "Prix final total TTC": final_total_price_incl_tax,
+        "Reservation Type": reservation_type,
+        "Réservation Statut": reservation_status,
+        "Pret?": ready,
+        "Créneau de début": start_slot,
+        "Créneau de fin": end_slot
+    }
+
+    if start_slot:
+        payload["Créneau de début"] = start_slot
+    if end_slot:
+        payload["Créneau de fin"] = end_slot
+
+    payload.update(extra_fields)
+
+    url = f"{BASE_URL}/api/v2/tables/{TABLE_ID}/records"
+
+    response = requests.post(url, headers=headers, json=payload)
+
+    if response.status_code == 200:
+        return f"✅ Reservation created successfully: {response.json().get('id')}"
+    else:
+        return f"❌ Failed to create reservation. Status: {response.status_code}, Response: {response.text}"
 
 import requests
 from langchain_core.tools import tool
