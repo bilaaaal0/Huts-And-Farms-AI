@@ -19,7 +19,7 @@ router = APIRouter()
 agent = BookingToolAgent()
 
 VERIFY_TOKEN = "my_custom_secret_token"
-WHATSAPP_TOKEN = "EAAZANH8gcmGsBO3LaIpAc22ePIJWqOi0GT5j71NiUZAFgQZC0i27fPmAbsUPG2aLMuSMVb1517rbcq4C3TeveoumRPPsZCPZAiAm5xqUlziNZBDGXtw8odfNLczab2O5wU8n8Xs2ixWluFSjgEnkGrGZBqqxjf6HIGPa69NsXbpJOj5E581uNDy3HA4vsevniXRFwkMNSXWXMfTzs8oeLSC5iMP3H2aATbsZCC9bEE201gqSkgZDZD"
+WHATSAPP_TOKEN = os.getenv("META_ACCESS_TOKEN")
 PHONE_NUMBER_ID = os.getenv("META_PHONE_NUMBER_ID")
 
 print(f"Whatsapp token : {WHATSAPP_TOKEN}")
