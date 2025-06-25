@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, DateTime, ForeignKey, Integer
+from sqlalchemy import Column, String, DateTime, ForeignKey, Integer, Text
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from app.database import Base
@@ -32,7 +32,7 @@ class Message(Base):
     id = Column(Integer, primary_key=True, index=True)
     session_id = Column(String(64), ForeignKey("sessions.id"))
     sender = Column(String(10))  # e.g. "user" or "bot"
-    content = Column(String(1000))
+    content = Column(Text)
     timestamp = Column(DateTime, default=datetime.utcnow)
 
     session = relationship("Session", back_populates="messages")

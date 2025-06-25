@@ -20,8 +20,8 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
 import os
 
-SQLALCHEMY_DATABASE_URL = os.getenv("SQLALCHEMY_DATABASE_URL")  # or hardcode if needed
-
+SQLALCHEMY_DATABASE_URL = "postgresql://neondb_owner:npg_A1IX3lDCgNOY@ep-silent-leaf-a8ebszia-pooler.eastus2.azure.neon.tech/neondb?sslmode=require&channel_binding=require" # or hardcode if needed
+print(SQLALCHEMY_DATABASE_URL)
 engine = create_engine(SQLALCHEMY_DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
