@@ -226,6 +226,24 @@ TABLE_ID = "mb92g41bhfubow2"  # Booking-Reservation table
 from app.chatbot.models import Client, Session
 from app.database import SessionLocal
 from datetime import datetime
+
+@tool("is_authenticated")
+def is_authenticated(session_id: str) -> str:
+    """
+    Checks if a session has an associated email.
+    Returns the email if authenticated, otherwise asks for an email.
+    """
+    with SessionLocal() as db:
+        session = db.query(Session).filter(Session.id == session_id).first()
+        if not session:
+            return f"Session {session_id} not found."
+
+        if session.client_email:
+            return f"Session {session_id} is authenticated for email: {session.client_email}"
+        else:
+            return f"Session {session_id} is NOT authenticated. Please provide an email address."
+
+
 @tool("authenticate_email")
 def authenticate_email(session_id: str, client_email: str) -> str:
     """

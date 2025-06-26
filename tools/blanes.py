@@ -74,10 +74,10 @@ def create_reservation(token: str, blane_id: int, date: str, time: str, status: 
 
 
 @tool("list_reservations")
-def list_reservations(token: str) -> str:
+def list_reservations(email: str) -> str:
     """
     Get the list of the authenticated user's reservations.
-    Requires user's access token.
+    Requires user's email.
     """
     url = f"https://{BASEURL}/front/v1/reservations"
     headers = {
@@ -89,8 +89,11 @@ def list_reservations(token: str) -> str:
         "sort_by": "date",
         "sort_order": "asc"
     }
+    payload = {
+        "email": email
+    }
 
-    response = requests.get(url, headers=headers, params=params)
+    response = requests.get(url, json=payload, headers=headers, params=params)
 
     if response.status_code != 200:
         return f"❌ Failed to fetch reservations: {response.text}"

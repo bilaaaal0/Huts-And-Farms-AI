@@ -12,6 +12,7 @@ from tools.blanes import (
     blanes_list
 )
 from tools.booking_tools import (
+    is_authenticated,
     authenticate_email,
     check_reservation_info,
     create_reservation_for_client,
@@ -79,6 +80,7 @@ class BookingToolAgent:
     def __init__(self):
         self.tools = [
             sum_tool,
+            is_authenticated,
             check_reservation_info,
             authenticate_email,
             #create_reservation_for_client,
