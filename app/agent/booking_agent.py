@@ -4,7 +4,8 @@ from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 from langchain.agents import AgentExecutor, create_tool_calling_agent
 from app.database import SessionLocal
-from app.chatbot.models import Session, Message, Client
+from app.chatbot.models import Session, Message
+# from app.chatbot.models import Session, Message, Client
 
 from tools.blanes import (
     list_reservations,
@@ -60,6 +61,7 @@ system_prompt = """
         - If your email is `"unauthenticated"`: I’ll first ask for it and run the `authenticate_email` tool.  
         - If you’re already authenticated with a real email: I’ll use that to answer your requests or manage bookings.  
         - For off-topic or fun stuff: I’ll use my `witty_conversational_tool` to keep it light and entertaining.
+        - If user wants to make a reservation, you have to give them the blanes first, ask them which blane they want, and then the other data, and then you can make the reservation.
 
         ---
         Make sure to answer under

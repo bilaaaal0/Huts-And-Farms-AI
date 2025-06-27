@@ -223,7 +223,8 @@ TOKEN = "PvRd94S5nqUOtplcdu4ZDq-4O45TGuls72CAekYT"
 HEADERS = {"xc-token": TOKEN}
 TABLE_ID = "mb92g41bhfubow2"  # Booking-Reservation table
 
-from app.chatbot.models import Client, Session
+# from app.chatbot.models import Client, Session
+from app.chatbot.models import Session
 from app.database import SessionLocal
 from datetime import datetime
 
