@@ -46,6 +46,46 @@ def blanes_list() -> str:
 from langchain.tools import tool
 import requests
 
+@tool("blanes_info")
+def get_blane_info(blane_id: int):
+    """
+    Requires blane_id.
+    Returns blane info.
+    """
+    url = f"{BASEURLFRONT}/blanes"
+
+    headers = {
+        "Content-Type": "application/json"
+    }
+
+    params = {
+        "status": "active",
+        "sort_by": "created_at",
+        "sort_order": "desc",
+        "pagination_size": 10  # or any size you want
+    }
+
+    try:
+        response = httpx.get(url, headers=headers, params=params)
+        response.raise_for_status()
+        blanes = response.json().get("data", [])
+        print(blanes)
+
+        if not blanes:
+            return "No blanes found."
+
+        output = []
+        for i, blane in enumerate(blanes, start=1):
+            if blane_id == blane['id']:
+                return blane
+
+        return None
+
+    except httpx.HTTPStatusError as e:
+        return f"❌ HTTP Error {e.response.status_code}: {e.response.text}"
+    except Exception as e:
+        return f"❌ Error fetching blanes: {str(e)}"
+
 def get_total_price(blane_id: int):
     url = f"{BASEURLFRONT}/blanes"
 
@@ -200,11 +240,12 @@ def list_reservations(email: str) -> str:
     if not data:
         return "📭 You have no reservations at the moment."
 
-    message = "📋 Your Reservations:\n"
-    for res in data:
-        message += f"- Ref: {res['NUM_RES']} | Blane ID: {res['blane_id']} | {res['date']} at {res['time']} ({res['status']})\n"
+    # message = "📋 Your Reservations:\n"
+    # for res in data:
+    #     message += f"- Ref: {res['NUM_RES']} | Blane ID: {res['blane_id']} | {res['date']} at {res['time']} ({res['status']})\n"
 
-    return message.strip()
+    # return message.strip()
+    return data
  
 # @tool("list_reservations")
 # def list_reservations(email: str) -> str:

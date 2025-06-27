@@ -10,7 +10,8 @@ from app.chatbot.models import Session, Message
 from tools.blanes import (
     list_reservations,
     create_reservation,
-    blanes_list
+    blanes_list,
+    get_blane_info
 )
 from tools.booking_tools import (
     is_authenticated,
@@ -91,7 +92,8 @@ class BookingToolAgent:
             #create_reservation_for_client,
             list_reservations,
             create_reservation,
-            blanes_list
+            blanes_list,
+            get_blane_info
         ]
 
         self.llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)

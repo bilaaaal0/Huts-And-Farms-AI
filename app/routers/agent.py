@@ -16,7 +16,6 @@ class ChatInput(BaseModel):
     session_id: str
     message: str
 
-
 @router.post("/chat")
 def chat_with_agent(request: ChatInput, db: Session = Depends(get_db)):
     session_id = request.session_id
@@ -34,6 +33,8 @@ def chat_with_agent(request: ChatInput, db: Session = Depends(get_db)):
 
     # Get agent response
     response_text = agent.get_response(user_message,session_id)
+
+    response_text = response_text.replace("**", "*")
 
     # Log bot response
     bot_msg = Message(
