@@ -251,11 +251,11 @@ def authenticate_email(session_id: str, client_email: str) -> str:
     """
     with SessionLocal() as db:
         # Check if client exists
-        client = db.query(Client).filter(Client.email == client_email).first()
-        if not client:
-            client = Client(email=client_email)
-            db.add(client)
-            db.commit()
+        # client = db.query(Client).filter(Client.email == client_email).first()
+        # if not client:
+        #     client = Client(email=client_email)
+        #     db.add(client)
+        #     db.commit()
 
         # Fetch the session
         session = db.query(Session).filter(Session.id == session_id).first()
