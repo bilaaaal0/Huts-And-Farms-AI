@@ -7,7 +7,7 @@ from app.agent.booking_agent import BookingToolAgent
 from app.database import SessionLocal
 from app.chatbot.models import Session as SessionModel, Message
 from fastapi.responses import PlainTextResponse
-
+from app.format_message import formatting
 load_dotenv()
 
 router = APIRouter()
@@ -20,19 +20,12 @@ PHONE_NUMBER_ID = os.getenv("META_PHONE_NUMBER_ID")
 print(f"Whatsapp token : {WHATSAPP_TOKEN}")
 
 
-@router.get("/meta-webhook")
-def verify_webhook(request: Request):
-    params = request.query_params
-    if params.get("hub.verify_token") == VERIFY_TOKEN:
-        return PlainTextResponse(params.get("hub.challenge"))
-    return PlainTextResponse("Invalid token", status_code=403)
-
-
 @router.post("/meta-webhook")
 async def receive_message(request: Request):
     data = await request.json()
     print("📩 Incoming:", data)
 
+    db = SessionLocal()
     try:
         entry = data["entry"][0]
         changes = entry["changes"][0]
@@ -46,15 +39,13 @@ async def receive_message(request: Request):
         text = messages[0]["text"]["body"]
         session_id = wa_id
 
-        db = SessionLocal()
-
         # --- Check for existing session ---
         session = db.query(SessionModel).filter_by(id=session_id).first()
 
         if not session:
             session = SessionModel(
                 id=session_id,
-                whatsapp_number=wa_id  # Save sender number
+                whatsapp_number=wa_id
             )
             db.add(session)
             db.commit()
@@ -70,6 +61,9 @@ async def receive_message(request: Request):
 
         # --- Get bot reply ---
         response = agent.get_response(incoming_text=text, session_id=session_id)
+        
+        # formatted response
+        response = formatting(response)
 
         # --- Save bot response ---
         db.add(Message(
@@ -79,7 +73,6 @@ async def receive_message(request: Request):
             timestamp=datetime.utcnow()
         ))
         db.commit()
-        db.close()
 
         print(f"🤖 Agent Reply: {response}")
         await send_whatsapp_message(wa_id, response)
@@ -87,7 +80,11 @@ async def receive_message(request: Request):
     except Exception as e:
         print("❌ Error in webhook:", e)
 
+    finally:
+        db.close() 
+
     return {"status": "ok"}
+
 
 
 async def send_whatsapp_message(recipient_number: str, message: str):
