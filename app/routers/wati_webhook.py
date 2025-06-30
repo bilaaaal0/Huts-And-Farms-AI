@@ -17,7 +17,16 @@ VERIFY_TOKEN = "my_custom_secret_token"
 WHATSAPP_TOKEN = os.getenv("META_ACCESS_TOKEN")
 PHONE_NUMBER_ID = os.getenv("META_PHONE_NUMBER_ID")
 
-print(f"Whatsapp token : {WHATSAPP_TOKEN}")
+
+
+
+@router.get("/meta-webhook")
+def verify_webhook(request: Request):
+    params = request.query_params
+    if params.get("hub.verify_token") == VERIFY_TOKEN:
+        return PlainTextResponse(params.get("hub.challenge"))
+    return PlainTextResponse("Invalid token", status_code=403)
+
 
 
 @router.post("/meta-webhook")
