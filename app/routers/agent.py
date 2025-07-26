@@ -8,6 +8,8 @@ from app.database import get_db
 import uuid
 from datetime import datetime
 
+
+from .utility import  is_hourly_messages_limit_exceeded,is_hourly_token_limit_exceeded
 router = APIRouter()
 agent = BookingToolAgent()
 
@@ -22,6 +24,12 @@ def chat_with_agent(request: ChatInput, db: Session = Depends(get_db)):
     user_message = request.message
 
     # Log user message
+    
+   
+    if is_hourly_token_limit_exceeded(session_id,user_message):
+            print(f"🚫 Rate limit exceeded for session: {session_id}")
+            return {"response": "max_tokens_reached"}
+    
     user_msg = Message(
         session_id=session_id,
         sender="user",
@@ -32,6 +40,7 @@ def chat_with_agent(request: ChatInput, db: Session = Depends(get_db)):
     db.commit()
 
     # Get agent response
+    
     response_text = agent.get_response(user_message,session_id)
 
     response_text = response_text.replace("**", "*")

@@ -2,17 +2,21 @@ from fastapi import APIRouter, Request
 import os
 import httpx
 from dotenv import load_dotenv
-from datetime import datetime
+from datetime import datetime, timedelta
 from app.agent.booking_agent import BookingToolAgent
 from app.database import SessionLocal
 from app.chatbot.models import Session as SessionModel, Message
 from fastapi.responses import PlainTextResponse
 from app.format_message import formatting
+from sqlalchemy import and_
 
 import re
 from typing import List, Optional, Dict
 
 load_dotenv()
+
+from .utility import is_hourly_messages_limit_exceeded, is_hourly_token_limit_exceeded
+
 
 router = APIRouter()
 agent = BookingToolAgent()
@@ -20,6 +24,7 @@ agent = BookingToolAgent()
 VERIFY_TOKEN = "my_custom_secret_token"
 WHATSAPP_TOKEN = os.getenv("META_ACCESS_TOKEN")
 PHONE_NUMBER_ID = os.getenv("META_PHONE_NUMBER_ID")
+
 
 
 
@@ -75,6 +80,16 @@ async def receive_message(request: Request):
         wa_id = messages[0]["from"]
         text = messages[0]["text"]["body"]
         session_id = wa_id
+
+        # ✅ Check hourly rate limit BEFORE processing
+
+        if is_hourly_token_limit_exceeded(session_id,text):
+            print(f"🚫 Rate limit exceeded for session: {session_id}")
+            await send_whatsapp_message(
+                wa_id, 
+                f"🚫 You've reached your limit of messages. Please try again later."
+            )
+            return {"response": "max_tokens_reached"}
 
         # --- Check for existing session ---
         session = db.query(SessionModel).filter_by(id=session_id).first()
