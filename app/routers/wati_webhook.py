@@ -27,7 +27,7 @@ router = APIRouter()
 agent = BookingToolAgent()
 admin_agent = AdminAgent()
 VERIFY_TOKEN = "my_custom_secret_token"
-WHATSAPP_TOKEN = "EAAUfq51d20gBPJHuVDZA5pe3GFnPDlzDmCKp5niT0HDYlVw0CtyTQH5BslPHxjUTBwVrslbHe3vyN0ZCxZAU21c9sWsJKVjqatk9AgTZCuSXwwajJvSLKhAfRctzdgAlymbsGsZADNCWFBibD1wA2qvZBCVwuKahij8XcWXgUxVliLCrxdgsziGsD6R2xZCS6VZC2k1IOKAe4Kc2wLZBYg27i0u1shq0z5QUR6ouZAxcABmse9xgZDZD"
+WHATSAPP_TOKEN = os.getenv("META_ACCESS_TOKEN")
 PHONE_NUMBER_ID = os.getenv("META_PHONE_NUMBER_ID")
 
 def get_or_create_user(wa_id: str, db) -> str:
