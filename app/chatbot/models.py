@@ -6,29 +6,53 @@ from sqlalchemy import Column, String, Text, Integer, Enum, DateTime, Numeric, U
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import declarative_base
 import uuid
+from pgvector.sqlalchemy import Vector
+
 
 
 class Session(Base):
     __tablename__ = "sessions"
-
     id = Column(String(64), primary_key=True, index=True)  # Use a UUID string or similar
-    whatsapp_number = Column(String(30), nullable=True)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.user_id"), nullable=False)  # Foreign key to users
     created_at = Column(DateTime, default=datetime.utcnow)
+    booking_id = Column(String(64), nullable=True)  # Booking ID if this session is related to a booking
+    property_id = Column(String(64), nullable=True)
+    property_type = Column(Enum("hut", "farm", name="property_type_enum"), nullable=True)
+    booking_date = Column(DateTime, nullable=True)  # Date of the booking
+    shift_type = Column(Enum("Day", "Night", "Full Day", name="shift_type_enum"), nullable=True)  # Type of booking shift
+    min_price = Column(Numeric(10, 2), nullable=True)  # Minimum price for the booking
+    max_price = Column(Numeric(10, 2), nullable=True)  # Maximum
+    max_occupancy = Column(Integer, nullable=True)  # Maximum occupancy for the booking
+    user = relationship("User", backref="sessions")  # Relationship to User model
 
-    client_email = Column(String(100), nullable=True)  # Email of the client, if authenticated
-    messages = relationship("Message", back_populates="session")
+# class Message(Base):
+#     __tablename__ = "messages"
+
+#     id = Column(Integer, primary_key=True, index=True)
+#     session_id = Column(String(64), ForeignKey("sessions.id"))
+#     sender = Column(String(10))  # e.g. "user" or "bot"
+#     content = Column(Text)
+#     timestamp = Column(DateTime, default=datetime.utcnow)
+
+#     session = relationship("Session", back_populates="messages")
+
 
 
 class Message(Base):
     __tablename__ = "messages"
 
+    
     id = Column(Integer, primary_key=True, index=True)
-    session_id = Column(String(64), ForeignKey("sessions.id"))
-    sender = Column(String(10))  # e.g. "user" or "bot"
+    # session_id = Column(String(64), ForeignKey("sessions.id"))
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.user_id"), nullable=False)
+    sender = Column(String(10))  # "user" or "bot"
     content = Column(Text)
-    timestamp = Column(DateTime, default=datetime.utcnow)
 
-    session = relationship("Session", back_populates="messages")
+    timestamp = Column(DateTime, default=datetime.utcnow)
+    whatsapp_message_id = Column(String(100), nullable=True)
+
+    query_embedding = Column(Vector(3072), nullable=True)  # use correct dimension
+    user = relationship("User", backref= "messages")
 
 
 
@@ -63,11 +87,10 @@ class User(Base):
     __table_args__ = (UniqueConstraint("email", name="unique_user_email"),)
 
     user_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    first_name = Column(String)
-    last_name = Column(String)
-    email = Column(String, nullable=False, unique=True)
-    phone_number = Column(String)
-    password = Column(Text, nullable=False)
+    name = Column(Text, nullable= True)
+    email = Column(String, nullable=True, unique=True)
+    phone_number = Column(String,nullable=False, unique=True)
+    password = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
 # ✅ Owners
@@ -89,16 +112,19 @@ class OwnerProperty(Base):
     __tablename__ = "owner_properties"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    owner_id = Column(UUID(as_uuid=True), nullable=False)
-    property_id = Column(UUID(as_uuid=True), nullable=False)
+    owner_id = Column(UUID(as_uuid=True), ForeignKey("owners.owner_id"), nullable=False)
+    property_id = Column(UUID(as_uuid=True), ForeignKey("properties.property_id"), nullable=False)
+    owner = relationship("Owner", backref="properties")
+    property = relationship("Property", backref="owners")
 
 # ✅ Bookings
 class Booking(Base):
     __tablename__ = "bookings"
 
-    booking_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    user_id = Column(UUID(as_uuid=True), nullable=False)
-    property_id = Column(UUID(as_uuid=True), nullable=False)
+    booking_id = Column(Text, primary_key=True)
+
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.user_id"), nullable=False)  # Foreign key to users
+    property_id = Column(UUID(as_uuid=True), ForeignKey("properties.property_id"), nullable=False)
     booking_date = Column(DateTime, nullable=False)
     shift_type = Column(Enum("Day", "Night", "Full Day", name="shift_type_enum"), nullable=False)
     total_cost = Column(Numeric(10, 2), nullable=False)
@@ -107,44 +133,63 @@ class Booking(Base):
     booked_at = Column(DateTime)
     created_at = Column(DateTime)
     updated_at = Column(DateTime)
-    user_phone_number = Column(String(255), nullable=True)
+    user = relationship("User", backref="bookings")
+    property = relationship("Property", backref="Booking")
+
+
+# class Payment(Base):
+#     __tablename__ = "payments"
+
+#     payment_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+#     booking_id = Column(UUID(as_uuid=True), nullable=False)
+#     amount = Column(Numeric(10, 2), nullable=False)
+#     status = Column(Enum("Pending", "Completed", "Failed", name="payment_status_enum"), default="Pending")
+#     transaction_id = Column(String(100), nullable=True)  # Transaction ID from payment gateway
+#     sender_phone_number = Column(String(20), nullable=True)  # Phone number of the sender
+#     sender_name = Column(String(100), nullable=True)  # Name of the sender
+#     created_at = Column(DateTime, default=datetime.utcnow)
+#     updated_at = Column(DateTime, default=datetime.utcnow)
 
 # ✅ PropertyPricing
 class PropertyPricing(Base):
     __tablename__ = "property_pricing"
 
     pricing_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    property_id = Column(UUID(as_uuid=True), nullable=False)
+    property_id = Column(UUID(as_uuid=True), ForeignKey("properties.property_id"), nullable=False)
     base_price_day_shift = Column(Numeric(10, 2))
     base_price_night_shift = Column(Numeric(10, 2))
     base_price_full_day = Column(Numeric(10, 2))
     season_start_date = Column(DateTime)
     season_end_date = Column(DateTime)
     special_offer_note = Column(Text)
+    property = relationship("Property", backref="pricing")
 
 # ✅ PropertyImage
 class PropertyImage(Base):
     __tablename__ = "property_images"
 
     image_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    property_id = Column(UUID(as_uuid=True), nullable=False)
+    property_id = Column(UUID(as_uuid=True), ForeignKey("properties.property_id"), nullable=False)
     image_url = Column(Text)
     uploaded_at = Column(DateTime)
+    property = relationship("Property", backref="images")
 
 # ✅ PropertyVideo
 class PropertyVideo(Base):
     __tablename__ = "property_videos"
 
     video_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    property_id = Column(UUID(as_uuid=True), nullable=False)
+    property_id = Column(UUID(as_uuid=True), ForeignKey("properties.property_id"), nullable=False)
     video_url = Column(Text)
     uploaded_at = Column(DateTime)
+    property = relationship("Property", backref="videos")
 
 # ✅ PropertyAmenity
 class PropertyAmenity(Base):
     __tablename__ = "property_amenities"
 
     amenity_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    property_id = Column(UUID(as_uuid=True), nullable=False)
+    property_id = Column(UUID(as_uuid=True), ForeignKey("properties.property_id"), nullable=False)
     type = Column(String)
     value = Column(String)
+    property = relationship("Property", backref="amenities")
