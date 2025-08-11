@@ -7,9 +7,7 @@ from sqlalchemy.pool import QueuePool
 from fastapi import Depends
 
 load_dotenv()
-SQLALCHEMY_DATABASE_URL = "postgresql://neondb_owner:npg_tPr56YXoVqDA@ep-snowy-surf-a1plyvab-pooler.ap-southeast-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
-
-
+SQLALCHEMY_DATABASE_URL = os.getenv("SQLALCHEMY_DATABASE_URL")
 # Enhanced engine configuration with connection pooling and SSL handling
 engine = create_engine(
     SQLALCHEMY_DATABASE_URL,
