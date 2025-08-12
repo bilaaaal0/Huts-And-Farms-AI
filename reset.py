@@ -21,7 +21,7 @@
 from sqlalchemy import text
 from app.database import engine
 
-tables = [ "sessions", "messages","bookings"]
+tables = [ "sessions", "messages","bookings", "users"]
 
 with engine.begin() as conn:
     for table in tables:

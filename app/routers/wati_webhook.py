@@ -359,7 +359,7 @@ async def receive_message(request: Request):
             if payment_details is not False:
                 media_id = messages[0]["image"]["id"]
                 media_url_response = requests.get(
-                    f"https://graph.facebook.com/v19.0/{media_id}",
+                    f"https://graph.facebook.com/v23.0/{media_id}",
                     headers={"Authorization": f"Bearer {WHATSAPP_TOKEN}"}
                 )
                 media_url = media_url_response.json().get("url")
@@ -511,7 +511,7 @@ async def receive_message(request: Request):
 
 # You'll also need to modify your send_whatsapp_message function to return the response
 async def send_whatsapp_message(recipient_number: str, message: str, media_urls: Dict[str, List[str]] = None):
-    url = f"https://graph.facebook.com/v19.0/{PHONE_NUMBER_ID}/messages"
+    url = f"https://graph.facebook.com/v23.0/{PHONE_NUMBER_ID}/messages"
     headers = {
         "Authorization": f"Bearer {WHATSAPP_TOKEN}",
         "Content-Type": "application/json"

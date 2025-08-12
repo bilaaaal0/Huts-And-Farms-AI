@@ -58,7 +58,7 @@ def send_whatsapp_message_sync(recipient_number: str, message: str, user_id: str
         dict: {"success": bool, "whatsapp_message_id": str, "message_db_id": int}
     """
     try:
-        url = f"https://graph.facebook.com/v19.0/{PHONE_NUMBER_ID}/messages"
+        url = f"https://graph.facebook.com/v23.0/{PHONE_NUMBER_ID}/messages"
         headers = {
             "Authorization": f"Bearer {WHATSAPP_TOKEN}",
             "Content-Type": "application/json"
@@ -273,7 +273,7 @@ Examples:
 • `reject {booking_details['booking_id']} amount_mismatch`
 • `reject {booking_details['booking_id']} insufficient_amount`"""
 
-            url = f"https://graph.facebook.com/v19.0/{PHONE_NUMBER_ID}/messages"
+            url = f"https://graph.facebook.com/v23.0/{PHONE_NUMBER_ID}/messages"
             headers = {
                 "Authorization": f"Bearer {WHATSAPP_TOKEN}",
                 "Content-Type": "application/json"
@@ -466,8 +466,9 @@ def create_booking(
         if not session or not session.property_id:
             return {"error": "Please provide me name of the property."}
         property_id = session.property_id
-        if user_name:
-            session.user.full_name = user_name
+        if user_name and not session.user.name:
+            session.user.name = user_name
+            print(f"Name is : {session.user.name}")
             db.commit()
         user_phone = session.user.phone_number
         user_id = session.user.user_id

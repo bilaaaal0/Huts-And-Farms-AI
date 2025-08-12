@@ -687,6 +687,8 @@ def introduction_message() -> str:
     
     Agar aap mujhe yeh tafseelat batayenge to main aapko sab se behtareen farmhouses/huts dikhaunga:
 
+       * Farmhouse ya hut
+
        * Date
 
        * Shift Type (Night/Day/Full Day)
