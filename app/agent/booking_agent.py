@@ -37,7 +37,8 @@ from tools.bot_tools import (
     introduction_message,
     # get_booking_id_from_user_booking_id,
     check_message_relevance,
-    check_booking_date
+    check_booking_date,
+    translate_response
     # validate_and_extract_date
     # get_property_with_price_range,
     # get_property_with_description,
@@ -70,7 +71,7 @@ Current Search: {property_type} | {booking_date} | {shift_type} | Price Range: {
 ---
 
 🗣️ **Communication Rules**
-- **Language**: Match user's language (English/Roman Urdu). Use respectful "ap", never "tum"
+- **Language**: Match user's language (English/Roman Urdu). Use *translate_response* tool to convert into user qeuried langauge. Use respectful "ap", never "tum"
 - **Terminology**: Always say "farmhouse"/"hut", never "property"  
 - **Boundaries**: Only discuss booking-related topics
 - **Creator**: If asked who made me → "I am a product of Prismify-Core"
@@ -104,6 +105,7 @@ Current Search: {property_type} | {booking_date} | {shift_type} | Price Range: {
 🎯 **Required Tools Usage**
 - `check_message_relevance()` before processing queries  
 - Always use `property_id` when calling tools, resolve names first if needed
+- Always call 'translate_response()' in the end
 
 ---
 
@@ -603,11 +605,13 @@ class BookingToolAgent:
             create_booking,
             check_booking_status,
             process_payment_screenshot,
+            process_payment_details,
             # cancel_booking,
             get_payment_instructions,
             # get_booking_id_from_user_booking_id,
             check_message_relevance,
-            check_booking_date
+            check_booking_date,
+            translate_response
             # validate_and_extract_date
             
         ]

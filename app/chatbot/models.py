@@ -19,23 +19,11 @@ class Session(Base):
     property_id = Column(String(64), nullable=True)
     property_type = Column(Enum("hut", "farm", name="property_type_enum"), nullable=True)
     booking_date = Column(DateTime, nullable=True)  # Date of the booking
-    shift_type = Column(Enum("Day", "Night", "Full Day", name="shift_type_enum"), nullable=True)  # Type of booking shift
+    shift_type = Column(Enum("Day", "Night", "Full Day", "Full Night", name="shift_type_enum"), nullable=True)  # Type of booking shift
     min_price = Column(Numeric(10, 2), nullable=True)  # Minimum price for the booking
     max_price = Column(Numeric(10, 2), nullable=True)  # Maximum
     max_occupancy = Column(Integer, nullable=True)  # Maximum occupancy for the booking
     user = relationship("User", backref="sessions")  # Relationship to User model
-
-# class Message(Base):
-#     __tablename__ = "messages"
-
-#     id = Column(Integer, primary_key=True, index=True)
-#     session_id = Column(String(64), ForeignKey("sessions.id"))
-#     sender = Column(String(10))  # e.g. "user" or "bot"
-#     content = Column(Text)
-#     timestamp = Column(DateTime, default=datetime.utcnow)
-
-#     session = relationship("Session", back_populates="messages")
-
 
 
 class Message(Base):
@@ -126,7 +114,7 @@ class Booking(Base):
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.user_id"), nullable=False)  # Foreign key to users
     property_id = Column(UUID(as_uuid=True), ForeignKey("properties.property_id"), nullable=False)
     booking_date = Column(DateTime, nullable=False)
-    shift_type = Column(Enum("Day", "Night", "Full Day", name="shift_type_enum"), nullable=False)
+    shift_type = Column(Enum("Day", "Night", "Full Day","Full Night" , name="shift_type_enum"), nullable=False)
     total_cost = Column(Numeric(10, 2), nullable=False)
     booking_source = Column(Enum("Website", "WhatsApp Bot", "Third-Party", name="booking_source_enum"), nullable=False)
     status = Column(Enum("Pending", "Confirmed", "Cancelled", "Completed", name="booking_status_enum"), default="Pending")
@@ -151,18 +139,42 @@ class Booking(Base):
 #     updated_at = Column(DateTime, default=datetime.utcnow)
 
 # ✅ PropertyPricing
+# class PropertyPricing(Base):
+#     __tablename__ = "property_pricing"
+
+#     pricing_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+#     property_id = Column(UUID(as_uuid=True), ForeignKey("properties.property_id"), nullable=False)
+#     base_price_day_shift = Column(Numeric(10, 2))
+#     base_price_night_shift = Column(Numeric(10, 2))
+#     base_price_full_day = Column(Numeric(10, 2))
+#     season_start_date = Column(DateTime)
+#     season_end_date = Column(DateTime)
+#     special_offer_note = Column(Text)
+#     property = relationship("Property", backref="pricing")
+
 class PropertyPricing(Base):
     __tablename__ = "property_pricing"
 
     pricing_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     property_id = Column(UUID(as_uuid=True), ForeignKey("properties.property_id"), nullable=False)
-    base_price_day_shift = Column(Numeric(10, 2))
-    base_price_night_shift = Column(Numeric(10, 2))
-    base_price_full_day = Column(Numeric(10, 2))
-    season_start_date = Column(DateTime)
-    season_end_date = Column(DateTime)
-    special_offer_note = Column(Text)
+    season_start_date = Column(DateTime, nullable=True)
+    season_end_date = Column(DateTime, nullable=True)
+    special_offer_note = Column(Text, nullable=True)
+
     property = relationship("Property", backref="pricing")
+
+
+class PropertyShiftPricing(Base):
+    __tablename__ = "property_shift_pricing"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    pricing_id = Column(UUID(as_uuid=True), ForeignKey("property_pricing.pricing_id"), nullable=False)
+    day_of_week = Column(Enum("saturday", "sunday", "monday", "tuesday", "wednesday", "thursday", "friday" , name="week_enum"), nullable=False)  # 0=Monday, 6=Sunday
+    shift_type = Column(Enum("Day", "Night", "Full Day","Full Night" , name="shift_type_enum"), nullable=False)  # 'day', 'night', 'full_day', 'full_night'
+    price = Column(Numeric(10, 2), nullable=False)
+
+    pricing = relationship("PropertyPricing", backref="shift_prices")
+
 
 # ✅ PropertyImage
 class PropertyImage(Base):

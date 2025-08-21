@@ -430,6 +430,177 @@ def process_admin_command(user_phone: str, message: str) -> dict:
     # Not an admin command
     return {"is_admin_command": False}
 
+# @tool("create_booking",return_direct=True)
+# def create_booking(
+#     session_id: str,
+#     booking_date: str,
+#     shift_type: str,
+#     user_name: Optional[str] = None
+# ) -> dict:
+#     """
+#     Create a new property booking when user wants to book, reserve, or rent a property/farm/venue.
+#     Use this when user says they want to book, reserve, rent, or says phrases like:
+#     - "I want to book a farm/property"
+#     - "Book karna hai", "farm book krna hai"
+#     - "Reserve this property"
+#     - "I want this venue"
+#     - "Book kar do"
+    
+#     Args:
+#         session_id: Current chat session ID
+#         property_id: UUID of the property user wants to book
+#         user_name: Customer's full name
+#         booking_date: Date in YYYY-MM-DD format
+#         shift_type: "Day", "Night", or "Full Day"
+    
+#     Returns booking confirmation with payment instructions.
+#     """
+    
+#     if user_name is None:
+#         return {"error": "Please provide your full name to create booking."}
+#     db = SessionLocal()
+#     try:
+#         # Get session details for user phone
+#         session = db.query(Session).filter_by(id=session_id).first()
+        
+#         if not session or not session.property_id:
+#             return {"error": "Please provide me name of the property."}
+#         property_id = session.property_id
+#         if user_name and not session.user.name:
+#             session.user.name = user_name
+#             print(f"Name is : {session.user.name}")
+#             db.commit()
+#         user_phone = session.user.phone_number
+#         user_id = session.user.user_id
+#         # Get property pricing and details
+#         property_id = session.property_id
+#         pricing_sql = """
+#             SELECT pp.base_price_day_shift, pp.base_price_night_shift, pp.base_price_full_day,
+#                    p.name, p.max_occupancy, p.address
+#             FROM property_pricing pp
+#             JOIN properties p ON pp.property_id = p.property_id
+#             WHERE pp.property_id = :property_id
+#         """
+#         result = db.execute(text(pricing_sql), {"property_id": property_id}).first()
+        
+#         if not result:
+#             return {"error": "❌ Property details not found. Please try again or contact support."}
+        
+#         day_price, night_price, full_price, property_name, max_occupancy, address = result
+        
+#         # Get price based on shift type
+#         price_map = {
+#             "Day": day_price,
+#             "Night": night_price,
+#             "Full Day": full_price
+#         }
+#         total_cost = price_map.get(shift_type)
+        
+#         if not total_cost:
+#             return {"error": "❌ Invalid shift type. Please choose 'Day', 'Night', or 'Full Day'"}
+        
+#         # Check if already booked
+#         existing_booking_sql = """
+#             SELECT 1 FROM bookings
+#             WHERE property_id = :property_id 
+#             AND booking_date = :booking_date
+#             AND shift_type = :shift_type
+#             AND status IN ('Pending', 'Confirmed')
+#         """
+#         existing = db.execute(text(existing_booking_sql), {
+#             "property_id": property_id,
+#             "booking_date": booking_date,
+#             "shift_type": shift_type
+#         }).first()
+        
+#         if existing:
+#             return {"error": f"❌ Sorry! {property_name} is already booked for {booking_date} ({shift_type} shift). Please choose a different date or shift."}
+        
+#         # Create booking with pending status
+#         booking_id = user_name + "-" + booking_date + "-" + shift_type
+#         session.booking_id = booking_id  # Store booking ID in session for later use
+#         db.commit()
+#         booking = Booking(
+#             booking_id=booking_id,
+#             user_id=user_id,
+#             property_id=property_id,
+#             booking_date=datetime.strptime(booking_date, "%Y-%m-%d").date(),
+#             shift_type=shift_type,
+#             total_cost=total_cost,
+#             booking_source="WhatsApp Bot",
+#             status="Pending",  # Pending until payment verification
+#             booked_at=datetime.now(),
+#             created_at=datetime.now(),
+#             updated_at=datetime.now()
+#         )
+        
+#         db.add(booking)
+#         db.commit()
+        
+#         # Format date for display
+#         try:
+#             date_obj = datetime.strptime(booking_date, "%Y-%m-%d")
+#             formatted_date = date_obj.strftime("%d %B %Y (%A)")
+#         except:
+#             formatted_date = booking_date
+        
+#         # Create comprehensive booking confirmation with payment instructions
+#         message = f"""🎉 *Booking Request Created Successfully!*
+
+# 📋 *Booking Details:*
+# 🆔 Booking ID: `{booking_id}`
+# 🏠 Property: *{property_name}*
+# 📍 Location: {address}
+# 📅 Date: {formatted_date}
+# 🕐 Shift: {shift_type}
+# 👥 Max Guests: {max_occupancy}
+# 💰 Total Amount: *Rs. {int(total_cost)}*
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━
+
+# 💳 *PAYMENT INSTRUCTIONS:*
+
+# Please send *Rs. {int(total_cost)}* to:
+# 📱 EasyPaisa Number: *{EASYPAISA_NUMBER}*
+
+# 📸 *After Making Payment:*
+# 1️⃣ Send me the payment screenshot, OR
+# 2️⃣ Provide these payment details:
+#    • Your full name (as sender) ✅ Required
+#    • Amount paid ✅ Required
+#    • Transaction ID (if available) ⚪ Optional
+#    • Your phone number (if different) ⚪ Optional
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━
+
+# ✅ *Verification Process:*
+# • Our team will verify your payment
+# • You'll get confirmation within 5-10 minutes
+# • Then your booking will be confirmed!
+
+# ⚠️ *Important Notes:*
+# • Complete payment within 30 minutes
+# • Keep your payment proof safe
+# • Payment must match exact amount: Rs. {int(total_cost)}
+
+# _Ready to pay? Send your payment proof after completing the transaction!_ 😊"""
+        
+#         return {
+#             # "success": True,
+#             # "booking_id": str(booking_id),
+#             "message": message,
+#             # "amount": float(total_cost),
+#             # "property_name": property_name,
+#             # "status": "pending_payment",
+#             # "easypaisa_number": EASYPAISA_NUMBER
+#         }
+        
+#     except Exception as e:
+#         db.rollback()
+#         print(f"❌ Error creating booking: {e}")
+#         return {"error": f"❌ Something went wrong while creating your booking. Please try again or contact support."}
+#     finally:
+#         db.close()
 @tool("create_booking",return_direct=True)
 def create_booking(
     session_id: str,
@@ -451,13 +622,14 @@ def create_booking(
         property_id: UUID of the property user wants to book
         user_name: Customer's full name
         booking_date: Date in YYYY-MM-DD format
-        shift_type: "Day", "Night", or "Full Day"
+        shift_type: "Day", "Night", "Full Day", or "Full Night"
     
     Returns booking confirmation with payment instructions.
     """
     
     if user_name is None:
         return {"error": "Please provide your full name to create booking."}
+    
     db = SessionLocal()
     try:
         # Get session details for user phone
@@ -465,39 +637,49 @@ def create_booking(
         
         if not session or not session.property_id:
             return {"error": "Please provide me name of the property."}
+        
         property_id = session.property_id
         if user_name and not session.user.name:
             session.user.name = user_name
             print(f"Name is : {session.user.name}")
             db.commit()
+            
         user_phone = session.user.phone_number
         user_id = session.user.user_id
-        # Get property pricing and details
-        property_id = session.property_id
+        
+        # Calculate day of week from booking date
+        try:
+            date_obj = datetime.strptime(booking_date, "%Y-%m-%d")
+            day_of_week = date_obj.strftime("%A").lower()
+        except ValueError:
+            return {"error": "❌ Invalid date format. Please use YYYY-MM-DD format."}
+        
+        # Get property pricing and details using new schema
         pricing_sql = """
-            SELECT pp.base_price_day_shift, pp.base_price_night_shift, pp.base_price_full_day,
-                   p.name, p.max_occupancy, p.address
+            SELECT psp.price, p.name, p.max_occupancy, p.address
             FROM property_pricing pp
+            JOIN property_shift_pricing psp ON pp.pricing_id = psp.pricing_id
             JOIN properties p ON pp.property_id = p.property_id
             WHERE pp.property_id = :property_id
+            AND psp.day_of_week = :day_of_week
+            AND psp.shift_type = :shift_type
         """
-        result = db.execute(text(pricing_sql), {"property_id": property_id}).first()
+        
+        result = db.execute(text(pricing_sql), {
+            "property_id": property_id,
+            "day_of_week": day_of_week,
+            "shift_type": shift_type
+        }).first()
         
         if not result:
-            return {"error": "❌ Property details not found. Please try again or contact support."}
+            return {"error": f"❌ Pricing not found for {shift_type} shift on {day_of_week}. Please contact support."}
         
-        day_price, night_price, full_price, property_name, max_occupancy, address = result
+        total_cost, property_name, max_occupancy, address = result
         
-        # Get price based on shift type
-        price_map = {
-            "Day": day_price,
-            "Night": night_price,
-            "Full Day": full_price
-        }
-        total_cost = price_map.get(shift_type)
-        
-        if not total_cost:
-            return {"error": "❌ Invalid shift type. Please choose 'Day', 'Night', or 'Full Day'"}
+        # Validate shift type
+        valid_shifts = ["Day", "Night", "Full Day", "Full Night"]
+        if shift_type not in valid_shifts:
+            return {"error": "❌ Invalid shift type. Please choose 'Day', 'Night', 'Full Day', or 'Full Night'"}
         
         # Check if already booked
         existing_booking_sql = """
@@ -520,6 +702,7 @@ def create_booking(
         booking_id = user_name + "-" + booking_date + "-" + shift_type
         session.booking_id = booking_id  # Store booking ID in session for later use
         db.commit()
+        
         booking = Booking(
             booking_id=booking_id,
             user_id=user_id,
@@ -586,13 +769,7 @@ Please send *Rs. {int(total_cost)}* to:
 _Ready to pay? Send your payment proof after completing the transaction!_ 😊"""
         
         return {
-            # "success": True,
-            # "booking_id": str(booking_id),
             "message": message,
-            # "amount": float(total_cost),
-            # "property_name": property_name,
-            # "status": "pending_payment",
-            # "easypaisa_number": EASYPAISA_NUMBER
         }
         
     except Exception as e:
@@ -601,6 +778,8 @@ _Ready to pay? Send your payment proof after completing the transaction!_ 😊""
         return {"error": f"❌ Something went wrong while creating your booking. Please try again or contact support."}
     finally:
         db.close()
+
+
 
 @tool("process_payment_screenshot" , return_direct=True)
 def process_payment_screenshot(booking_id: str = None) -> dict:
@@ -693,16 +872,14 @@ def process_payment_details(
         #     return {"error": f"❌ This booking is already {booking.status.lower()}"}
         
         # Extract details from text if provided
-        extracted_details = {}
-        if payment_text:
-            extracted_details = payment_extractor.extract_from_text(payment_text)
+        
         
         # Combine provided details with extracted details (manual input takes priority)
         payment_details = {
-            'transaction_id': transaction_id or extracted_details.get('transaction_id', ''),
-            'sender_name': sender_name or extracted_details.get('sender_name'),
-            'amount': amount or extracted_details.get('amount'),
-            'sender_phone': sender_phone or extracted_details.get('sender_phone', ''),
+            'transaction_id': transaction_id ,
+            'sender_name': sender_name ,
+            'amount': amount ,
+            'sender_phone': sender_phone,
             'receiver_phone': EASYPAISA_NUMBER,
             
         }
