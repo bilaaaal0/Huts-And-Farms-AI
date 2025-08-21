@@ -627,23 +627,26 @@ def create_booking(
     Returns booking confirmation with payment instructions.
     """
     
-    if user_name is None:
-        return {"error": "Please provide your full name to create booking."}
+    
     
     db = SessionLocal()
     try:
+        
         # Get session details for user phone
         session = db.query(Session).filter_by(id=session_id).first()
         
         if not session or not session.property_id:
             return {"error": "Please provide me name of the property."}
         
+        if user_name is None and not session.user.name:
+            return {"error": "Please provide me your full name for booking"}
+
         property_id = session.property_id
         if user_name and not session.user.name:
             session.user.name = user_name
-            print(f"Name is : {session.user.name}")
+       
             db.commit()
-            
+        print(f"Name is : {session.user.name}")    
         user_phone = session.user.phone_number
         user_id = session.user.user_id
         
@@ -699,7 +702,7 @@ def create_booking(
             return {"error": f"❌ Sorry! {property_name} is already booked for {booking_date} ({shift_type} shift). Please choose a different date or shift."}
         
         # Create booking with pending status
-        booking_id = user_name + "-" + booking_date + "-" + shift_type
+        booking_id = session.user.name + "-" + booking_date + "-" + shift_type
         session.booking_id = booking_id  # Store booking ID in session for later use
         db.commit()
         
