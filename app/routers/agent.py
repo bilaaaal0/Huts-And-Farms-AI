@@ -64,9 +64,7 @@ def store_message_safely(db, session_id, sender, content, embedding_service=None
     db.commit()  # Ensure the session is committed
     return message
 
-@router.post("/")
-def home():
-    return {"message": "Hello Bhai kesy ho"}
+
     
 
 

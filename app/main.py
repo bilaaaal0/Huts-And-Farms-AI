@@ -216,6 +216,9 @@ async def request_registration_code(request: Request):
         logger.error(f"Registration request failed: {e}")
         raise HTTPException(status_code=500, detail=f"Registration failed: {str(e)}")
 
+@app.post("/")
+def home():
+    return {"message": "Hello Bhai kesy ho."}
 
 @app.post("/v1/account/verify")
 async def verify_registration_code(request: Request):
