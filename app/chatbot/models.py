@@ -66,6 +66,7 @@ class Property(Base):
     username = Column(String(100), unique=True)
     password = Column(Text, nullable=False)
     type = Column(Enum("hut", "farm", name="property_type_enum"), nullable=False)
+    advance_percentage = Column(Numeric(5, 2), nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow)
 
@@ -76,6 +77,7 @@ class User(Base):
 
     user_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     name = Column(Text, nullable= True)
+    cnic = Column(String(13),nullable=True, unique=True)
     email = Column(String, nullable=True, unique=True)
     phone_number = Column(String,nullable=False, unique=True)
     password = Column(Text, nullable=True)

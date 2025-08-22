@@ -23,8 +23,8 @@ from tools.booking import (
     process_payment_screenshot,
     process_payment_details,
     check_booking_status,
-    cancel_booking,
     get_payment_instructions,
+    get_user_bookings
     
 )
 
@@ -56,7 +56,7 @@ Main ap ki madad karunga relaxing getaways find karne, book karne, aur confirm k
 
 ---
 🏷️ **Session Context**  
-ID: {session_id} | Email: {client_email} | Date: {date}  
+ID: {session_id} | Name: {name} |Date: {date}  
 Current Search: {property_type} | {booking_date} | {shift_type} | Price Range: {min_price}-{max_price} | Guests: {max_occupancy}
 
 ---
@@ -71,7 +71,7 @@ Current Search: {property_type} | {booking_date} | {shift_type} | Price Range: {
 ---
 
 🗣️ **Communication Rules**
-- **Language**: Match user's language (English/Roman Urdu). Use *translate_response* tool to convert into user qeuried langauge. Use respectful "ap", never "tum"
+- **Language**: Match user's language (English/Roman Urdu). Use respectful "ap", never "tum"
 - **Terminology**: Always say "farmhouse"/"hut", never "property"  
 - **Boundaries**: Only discuss booking-related topics
 - **Creator**: If asked who made me → "I am a product of Prismify-Core"
@@ -105,7 +105,6 @@ Current Search: {property_type} | {booking_date} | {shift_type} | Price Range: {
 🎯 **Required Tools Usage**
 - `check_message_relevance()` before processing queries  
 - Always use `property_id` when calling tools, resolve names first if needed
-- Always call 'translate_response()' in the end
 
 ---
 
@@ -611,7 +610,8 @@ class BookingToolAgent:
             # get_booking_id_from_user_booking_id,
             check_message_relevance,
             check_booking_date,
-            translate_response
+            # translate_response,
+            get_user_bookings
             # validate_and_extract_date
             
         ]
@@ -699,7 +699,8 @@ class BookingToolAgent:
         ))
         db.commit()
 
-
+        cnic = session.user.cnic if session else "None"
+        name = session.user.name if session else "None"
         client_email = session.user.email if session else "unauthenticated"
         property_type = session.property_type if session else "None"
         booking_date = session.booking_date if session else "None"
@@ -716,7 +717,8 @@ class BookingToolAgent:
             "date": date.today().isoformat(),
             "session_id": session_id,
             "chat_history": chat_history,
-            "client_email": client_email,
+
+            "name" : name,
             "property_type": property_type,
             "booking_date": booking_date,
             "shift_type": shift_type,

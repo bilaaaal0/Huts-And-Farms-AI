@@ -7,7 +7,7 @@ from app.chatbot.models import (
     Property, PropertyImage, PropertyAmenity, PropertyPricing, PropertyVideo,
     OwnerProperty, Owner, User, Booking, Session, Message
 )
-from sqlalchemy import text, and_
+from sqlalchemy import text, and_,desc,asc
 from typing import List, Dict, Optional
 import uuid
 from datetime import datetime, timedelta
@@ -198,6 +198,7 @@ def send_verification_request_sync(booking_details: Dict, payment_details: Dict)
 🕐 Shift: {booking_details['shift_type']}
 💰 Expected Amount: Rs. {booking_details['amount']}
 👤 Customer Name: {booking_details['customer_name']}
+
 📱 Customer Phone: {booking_details['customer_phone']}
 
 💳 *Payment Details Provided:*
@@ -324,111 +325,7 @@ Examples:
         print(f"❌ Critical error in run_async_verification: {e}")
         return False
 
-@tool("process_admin_command")
-def process_admin_command(user_phone: str, message: str) -> dict:
-    """
-    Process admin commands for payment verification.
-    This tool should be called FIRST when message comes from the admin phone number.
-    
-    Args:
-        user_phone: Phone number of the sender (should be VERIFICATION_WHATSAPP)
-        message: The admin's message/command
-        
-    Returns admin command processing result or indicates if not an admin command.
-    """
-    # Clean phone number for comparison
-    clean_user_phone = user_phone.replace('+', '').replace('-', '').replace(' ', '')
-    clean_admin_phone = VERIFICATION_WHATSAPP.replace('+', '').replace('-', '').replace(' ', '')
-    
-    # Only process if message is from admin number
-    if clean_user_phone != clean_admin_phone:
-        return {"is_admin_command": False}
-    
-    message = message.strip().lower()
-    
-    # Check for confirm command: "confirm BOOKING_ID"
-    confirm_match = re.match(r'confirm\s+([a-f0-9-]{36})', message)
-    if confirm_match:
-        booking_id = confirm_match.group(1)
-        result = confirm_booking_payment(booking_id, user_phone)
-        
-        if result.get('success'):
-            # Send confirmation to customer
-            if result.get('customer_phone'):
-                send_whatsapp_message_sync(result['customer_phone'], result['message'])
-            
-            return {
-                "is_admin_command": True,
-                "action": "confirm",
-                "booking_id": booking_id,
-                "success": True,
-                "admin_message": f"✅ Booking {booking_id} confirmed successfully. Customer has been notified."
-            }
-        else:
-            return {
-                "is_admin_command": True,
-                "action": "confirm",
-                "success": False,
-                "admin_message": f"❌ Error confirming booking: {result.get('error', 'Unknown error')}"
-            }
-    
-    # Check for reject command: "reject BOOKING_ID reason"
-    reject_match = re.match(r'reject\s+([a-f0-9-]{36})(?:\s+(.+))?', message)
-    if reject_match:
-        booking_id = reject_match.group(1)
-        reason = reject_match.group(2) if reject_match.group(2) else "verification_failed"
-        
-        result = reject_booking_payment(booking_id, reason, user_phone)
-        
-        if result.get('success'):
-            # Send rejection message to customer
-            if result.get('customer_phone'):
-                send_whatsapp_message_sync(result['customer_phone'], result['message'])
-            
-            return {
-                "is_admin_command": True,
-                "action": "reject",
-                "booking_id": booking_id,
-                "reason": reason,
-                "success": True,
-                "admin_message": f"❌ Booking {booking_id} rejected (Reason: {reason}). Customer has been notified."
-            }
-        else:
-            return {
-                "is_admin_command": True,
-                "action": "reject",
-                "success": False,
-                "admin_message": f"❌ Error rejecting booking: {result.get('error', 'Unknown error')}"
-            }
-    
-    # Check for help command
-    if message in ['help', 'commands', '?']:
-        return {
-            "is_admin_command": True,
-            "action": "help",
-            "admin_message": """📋 *ADMIN COMMANDS*
 
-✅ *Confirm Payment:*
-`confirm BOOKING-ID`
-
-❌ *Reject Payment:*
-`reject BOOKING-ID reason`
-
-*Common Reasons:*
-• amount_mismatch
-• transaction_not_found
-• insufficient_amount
-• incorrect_receiver
-• duplicate_transaction
-• invalid_details
-
-*Examples:*
-• `confirm 12345678-1234-1234-1234-123456789012`
-• `reject 12345678-1234-1234-1234-123456789012 amount_mismatch`"""
-        }
-    
-    # Not an admin command
-    return {"is_admin_command": False}
 
 # @tool("create_booking",return_direct=True)
 # def create_booking(
@@ -601,11 +498,16 @@ def process_admin_command(user_phone: str, message: str) -> dict:
 #         return {"error": f"❌ Something went wrong while creating your booking. Please try again or contact support."}
 #     finally:
 #         db.close()
+
+def remove_dash_from_cnic(cnic:str):
+    return cnic.replace("-", "")
+
 @tool("create_booking",return_direct=True)
 def create_booking(
     session_id: str,
     booking_date: str,
     shift_type: str,
+    cnic: Optional[str] = None,
     user_name: Optional[str] = None
 ) -> dict:
     """
@@ -638,10 +540,24 @@ def create_booking(
         if not session or not session.property_id:
             return {"error": "Please provide me name of the property."}
         
-        if user_name is None and not session.user.name:
-            return {"error": "Please provide me your full name for booking"}
-
         property_id = session.property_id
+        print(session.user.name)
+        print(session.user.cnic)
+        if (cnic is None and not session.user.cnic) and (user_name is None and not session.user.name):
+            print("Hello")
+            return {"error": "Please provide me your Full name and CNIC for booking"}
+        
+        elif cnic is None and not session.user.cnic:
+            return {"error":"Please provide your CNIC for booking"}
+
+        elif user_name is None and not session.user.name:
+            return {"error": "Please provide me your Full name for booking"}
+
+        if cnic and not session.user.cnic:
+            cnic = remove_dash_from_cnic(cnic)
+            session.user.cnic = cnic
+
+        
         if user_name and not session.user.name:
             session.user.name = user_name
        
@@ -730,6 +646,9 @@ def create_booking(
         except:
             formatted_date = booking_date
         
+        adv = booking.property.advance_percentage
+        cost_to_pay = (adv/100)*total_cost
+        remaining_amount = total_cost - cost_to_pay
         # Create comprehensive booking confirmation with payment instructions
         message = f"""🎉 *Booking Request Created Successfully!*
 
@@ -746,8 +665,10 @@ def create_booking(
 
 💳 *PAYMENT INSTRUCTIONS:*
 
-Please send *Rs. {int(total_cost)}* to:
+Please send {booking.property.advance_percentage}% advance *Rs. {int(cost_to_pay)}* to:
 📱 EasyPaisa Number: *{EASYPAISA_NUMBER}*
+
+Pay remaining Amount *Rs: {int(remaining_amount)}* on the {booking.property.type}
 
 📸 *After Making Payment:*
 1️⃣ Send me the payment screenshot, OR
@@ -807,7 +728,7 @@ def process_payment_screenshot(booking_id: str = None) -> dict:
     property_type = booking.property.type
     total_cost = booking.total_cost
     user_phone = booking.user.phone_number
-        
+    user_cnic = booking.user.cnic    
     message = f"""📸 *Payment Screenshot Received!*
 
     Booking ID: `{booking_id}`
@@ -817,8 +738,12 @@ def process_payment_screenshot(booking_id: str = None) -> dict:
     Shift: {shift_type}
     Total Amount: *Rs. {int(total_cost)}*
     User Phone: {user_phone}
+    User CNIC: {user_cnic}
 
     Please verify the payment by looking at the screenshot.
+
+    To confirm : confirm `{booking_id}`
+    To reject : reject `{booking_id}` [reason]
         """
 
     client_message = f"""📸 *Payment Screenshot Received!*
@@ -839,11 +764,10 @@ def process_payment_details(
 
     session_id: str,
     booking_id: str,
-    transaction_id: str = None,
-    sender_name: str = None,
-    amount: str = None,
-    sender_phone: str = None,
-    payment_text: str = None
+    transaction_id: Optional[str] = None,
+    sender_name: Optional[str] = None,
+    amount: Optional[str] = None,
+    sender_phone: Optional[str] = None
 ) -> dict:
     """
     Process manual payment details when user provides transaction info via text.
@@ -1084,6 +1008,8 @@ Congratulations! Your payment has been verified and booking is confirmed.
 📍 Address: {property_address}
 📞 Property Contact: {property_contact or 'Will be shared on visit day'}
 
+✍️ User Name : {booking.user.name}
+🪪 User CNIC : {booking.user.cnic}
 ━━━━━━━━━━━━━━━━━━━━━━━━━
 
 🎯 *WHAT'S NEXT:*
@@ -1409,8 +1335,106 @@ _Ready when you are!_ 😊"""
     finally:
         db.close()
 
+# @tool("get_user_bookings")
+# def get_user_bookings(session_id: str,
+#                       cnic : Optional[str] = None, limit: int = 5) -> dict:
+#     """
+#     Get user's recent bookings when they ask about their bookings.
+#     Use when user asks:
+#     - "Show my bookings"
+#     - "Mere bookings dikhao"
+#     - "What are my reservations?"
+#     - "My booking history"
+    
+#     Args:
+#         session_id: Current session ID to identify user
+#         limit: Maximum number of bookings to return
+        
+#     Returns user's recent bookings list.
+#     """
+#     db = SessionLocal()
+#     try:
+#         # Get session to find user
+#         session = db.query(Session).filter_by(id=session_id).first()
+#         if not session:
+#             return {"error": "❌ Session not found. Please restart the conversation."}
+#         if not cnic:
+#             return {"error": "PLease provide me CNIC number which you used to confirm booking."}
+#         user_phone = session.user.phone_number
+#         user_cnic = session.user.cnic
+#         user_id = session.user.user_id
+#         cnic = remove_dash_from_cnic(cnic)
+#         if user_cnic == cnic:
+            
+
+#             results = (
+#                 db.query(Booking)
+#                 .filter_by(user_id=user_id)
+#                 .order_by(desc(Booking.created_at))  # or Booking.booked_at
+#                 .limit(limit)
+#                 .all()  
+#             )
+#         # Get user's bookings
+#         if not results:
+#             return {
+#                 "success": True,
+#                 "message": """📋 *YOUR BOOKINGS*
+
+#                 No bookings found yet.
+
+#                 Ready to make your first booking? Just tell me what kind of property you're looking for! 🏡"""
+#             }
+        
+#         bookings_list = []
+#         for result in results:
+#             booking_id, status, booking_date, shift_type, total_cost, created_at, property_name = result
+            
+#             # Format date
+#             try:
+#                 formatted_date = booking_date.strftime("%d %b %Y")
+#             except:
+#                 formatted_date = str(booking_date)
+            
+#             # Status emoji
+#             status_emoji = {
+#                 "Pending": "⏳",
+#                 "Confirmed": "✅", 
+#                 "Cancelled": "❌",
+#                 "Completed": "🎉"
+#             }.get(status, "📋")
+            
+#             booking_info = f"""{status_emoji} *{property_name}*
+# 📅 {formatted_date} | {shift_type}
+# 💰 Rs. {int(total_cost)} | {status}
+# 🆔 `{booking_id}`"""
+            
+#             bookings_list.append(booking_info)
+        
+#         message = f"""📋 *YOUR RECENT BOOKINGS*
+
+# {chr(10).join(bookings_list)}
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━
+
+# 💡 *Quick Actions:*
+# • Check status: Share booking ID
+# • Need help: Contact support
+# • New booking: Tell me your requirements!"""
+        
+#         return {
+#             "success": True,
+#             "message": message,
+#             "bookings_count": len(results)
+#         }
+        
+#     except Exception as e:
+#         print(f"❌ Error getting user bookings: {e}")
+#         return {"error": "❌ Error retrieving your bookings. Please try again."}
+#     finally:
+#         db.close()
 @tool("get_user_bookings")
-def get_user_bookings(session_id: str, limit: int = 5) -> dict:
+def get_user_bookings(session_id: str,
+                      cnic : Optional[str] = None, limit: int = 5) -> dict:
     """
     Get user's recent bookings when they ask about their bookings.
     Use when user asks:
@@ -1431,25 +1455,36 @@ def get_user_bookings(session_id: str, limit: int = 5) -> dict:
         session = db.query(Session).filter_by(id=session_id).first()
         if not session:
             return {"error": "❌ Session not found. Please restart the conversation."}
+        if not cnic:
+            return {"error": "Please provide me CNIC number which you used to confirm booking."}
         
-        user_phone = session.whatsapp_number
+        user_phone = session.user.phone_number
+        user_cnic = session.user.cnic
+        user_id = session.user.user_id
+        cnic = remove_dash_from_cnic(cnic)
+        
+        if user_cnic == cnic:
+            # Fixed query - properly join with Property table and select specific columns
+            results = (
+                db.query(
+                    Booking.booking_id,
+                    Booking.status,
+                    Booking.booking_date,
+                    Booking.shift_type,
+                    Booking.total_cost,
+                    Booking.created_at,
+                    Property.name.label('property_name')
+                )
+                .join(Property, Booking.property_id == Property.property_id)
+                .filter(Booking.user_id == user_id)
+                .order_by(desc(Booking.created_at))
+                .limit(limit)
+                .all()
+            )
+        else:
+            return {"error": "❌ CNIC does not match our records. Please provide the correct CNIC."}
         
         # Get user's bookings
-        bookings_sql = """
-            SELECT b.booking_id, b.status, b.booking_date, b.shift_type, b.total_cost, 
-                   b.created_at, p.name as property_name
-            FROM bookings b
-            JOIN properties p ON b.property_id = p.property_id
-            WHERE b.user_phone_number = :user_phone
-            ORDER BY b.created_at DESC
-            LIMIT :limit
-        """
-        
-        results = db.execute(text(bookings_sql), {
-            "user_phone": user_phone,
-            "limit": limit
-        }).fetchall()
-        
         if not results:
             return {
                 "success": True,
@@ -1507,10 +1542,8 @@ Ready to make your first booking? Just tell me what kind of property you're look
         return {"error": "❌ Error retrieving your bookings. Please try again."}
     finally:
         db.close()
-
 # Export all booking tools
 booking_tools = [
-    process_admin_command,  # Must be first to check for admin commands
     create_booking,
     process_payment_screenshot,
     process_payment_details,
