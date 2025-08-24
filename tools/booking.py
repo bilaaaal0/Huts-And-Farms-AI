@@ -669,6 +669,7 @@ def create_booking(
 
 Please send {booking.property.advance_percentage}% advance *Rs. {int(cost_to_pay)}* to:
 📱 EasyPaisa Number: *{EASYPAISA_NUMBER}*
+✍🏼 Account Holder Name : *SYED MUHAMMAD BILAL*
 
 Pay remaining Amount *Rs: {int(remaining_amount)}* on the {booking.property.type}
 
