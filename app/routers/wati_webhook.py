@@ -29,7 +29,7 @@ admin_agent = AdminAgent()
 VERIFY_TOKEN = "my_custom_secret_token"
 WHATSAPP_TOKEN = os.getenv("META_ACCESS_TOKEN")
 PHONE_NUMBER_ID = os.getenv("META_PHONE_NUMBER_ID")
-
+VERIFICATION_WHATSAPP = "923353633400"
 def get_or_create_user(wa_id: str, db) -> str:
     user = db.query(User).filter_by(phone_number=wa_id).first()
     if user:
@@ -393,7 +393,7 @@ async def receive_message(request: Request):
                 }
                 
                 # Send admin notification and get WhatsApp response
-                admin_response = await send_whatsapp_message("923155699929", payment_details, cloudinary_dict)
+                admin_response = await send_whatsapp_message(VERIFICATION_WHATSAPP, payment_details, cloudinary_dict)
                 
                 # Save BOT message with ADMIN's WhatsApp message ID (if needed)
                 if admin_response and hasattr(admin_response, 'json'):
@@ -419,7 +419,7 @@ async def receive_message(request: Request):
         elif messages[0].get("type") == "text":
             text = messages[0]["text"]["body"]
 
-            if wa_id == "923155699929":
+            if wa_id == VERIFICATION_WHATSAPP:
                 print("Received message from admin")
                 
                 admin_bot_answer = admin_agent.get_response(text, session_id)

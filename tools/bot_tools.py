@@ -1219,7 +1219,7 @@ def list_properties(
         # Final message
         header = f"Available *{property_display}* and their *Price* for *{formatted_date} {current_shift_type}* shift:"
         message = header + "\n" + "\n\n".join(numbered_lines)
-        message += f"\n\nAgr ap inme sy kisi {current_property_type} ki details ya pictures aur videos chahte hain to mujhe uska naam batayein! Shukriya."
+        message += f"\n\nIf you want to see any of the {current_property_type}'s details, pictures and videos then tell me its serial number."
 
         return {
             "message": message,
