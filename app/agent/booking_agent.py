@@ -740,11 +740,6 @@ class BookingToolAgent:
         db = SessionLocal()
         session = db.query(Session).filter_by(id=session_id).first()
 
-        if incoming_text == "Image recieved run process_payment_screenshot":
-            booking_id = session.booking_id if session else "None"
-            print(f"Booking ID: {booking_id}")
-            if booking_id == "None":
-                return False
         # --- Save user message ---
         user_id = session.user.user_id
         

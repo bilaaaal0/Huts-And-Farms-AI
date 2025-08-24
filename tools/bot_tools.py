@@ -975,6 +975,29 @@ def introduction_message() -> str:
        ‣ *Price Range* (optional)
 
     """
+    message = """
+    Hello! I’m HutBuddy AI, your booking assistant.
+
+    I can help you with:
+    ‣   🏡 Booking huts and farmhouses
+    ‣   📅 Checking availability
+    ‣   💸 Guiding you through the booking and payment process
+    
+    If you share the following details with me, I’ll show you the best available farmhouses/huts:
+
+       ‣ *Farmhouse / Hut*
+       ‣ *Date*
+       ‣ *Shift Type (Day / Night / Full Day / Full Night)*
+            - Day   -> 8 am to 6 pm
+            - Night -> 8 pm to 6 am
+            - Full Day   -> 8 am to 6 am next day
+            - Full Night -> 8 pm to 6 pm next day
+       ‣ *Number of People*
+       ‣ *Price Range* (optional)
+
+    """
+    return message
+
     return message
 
 

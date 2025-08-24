@@ -29,7 +29,7 @@ import time
 
 # Configuration
 EASYPAISA_NUMBER = "03155699929"
-VERIFICATION_WHATSAPP = "923353633400"
+VERIFICATION_WHATSAPP = "923155699929"
 WHATSAPP_TOKEN = os.getenv("META_ACCESS_TOKEN")
 PHONE_NUMBER_ID = os.getenv("META_PHONE_NUMBER_ID")
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
@@ -554,6 +554,8 @@ def create_booking(
             return {"error": "Please provide me your Full name for booking"}
 
         if cnic and not session.user.cnic:
+            if len(cnic)!=13:
+                return {"error":"Please enter 13 digit CNIC"}
             cnic = remove_dash_from_cnic(cnic)
             session.user.cnic = cnic
 
