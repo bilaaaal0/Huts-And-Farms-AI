@@ -7,7 +7,7 @@ from langchain_core.tools import StructuredTool
 from app.database import SessionLocal
 from app.chatbot.models import (
     Property, PropertyImage, PropertyAmenity, PropertyPricing, PropertyVideo,
-    OwnerProperty, Owner, User, Booking, Session
+    OwnerProperty, Owner, User, Booking, Session, ImageSent, VideoSent
 )
 from sqlalchemy import text
 from typing import List, Dict, Optional
@@ -1384,6 +1384,7 @@ def get_property_details(session_id: str) -> dict:
 def get_property_images(session_id: str) -> dict:
     """
     Get all public image URLs for a specific property by its ID (getting property_id from session).
+    Tracks if images have already been sent for this session and property.
     """
     db = SessionLocal()
     try:
@@ -1400,6 +1401,28 @@ def get_property_images(session_id: str) -> dict:
             
         property_id = session.property_id
         
+        # Check if images have already been sent for this session and property
+        existing_record = db.query(ImageSent).filter_by(
+            session_id=session_id, 
+            property_id=property_id
+        ).first()
+        
+        if existing_record:
+            # Get property name for better user experience
+            property_name = "this property"
+            if session.property and session.property.name:
+                property_name = session.property.name
+            
+            return {
+                "success": True,
+                "message": f"I have already sent you images for {property_name}.",
+                "property_id": str(property_id),
+                "images": [],
+                "images_count": 0,
+                "already_sent": True
+            }
+        
+        # Fetch images from database
         sql = """
             SELECT DISTINCT pi.image_url 
             FROM property_images pi
@@ -1408,27 +1431,48 @@ def get_property_images(session_id: str) -> dict:
             AND pi.image_url != ''
         """
         result = db.execute(text(sql), {"property_id": property_id}).fetchall()
-
-        image_urls = [row[0].strip() for row in result if row[0] and row[0].strip()]
-
-        return {
-            "success": True,
-            "message": "Fetched image URLs successfully" if image_urls else "No images found",
-            "property_id": str(property_id),
-            "images": image_urls,
-            "images_count": len(image_urls)
-        }
         
+        image_urls = [row[0].strip() for row in result if row[0] and row[0].strip()]
+        
+        if image_urls:
+            # Create record to track that images have been sent
+            image_sent_record = ImageSent(
+                session_id=session_id,
+                property_id=property_id
+            )
+            db.add(image_sent_record)
+            db.commit()
+            
+            return {
+                "success": True,
+                "message": "Fetched image URLs successfully",
+                "property_id": str(property_id),
+                "images": image_urls,
+                "images_count": len(image_urls),
+                "already_sent": False
+            }
+        else:
+            return {
+                "success": True,
+                "message": "No images found",
+                "property_id": str(property_id),
+                "images": [],
+                "images_count": 0,
+                "already_sent": False
+            }
+            
     except Exception as e:
         print(f"Error getting property images: {e}")
         return {"success": False, "message": "❌ Error getting property images"}
     finally:
         db.close()
 
+
 @tool("get_property_videos")
 def get_property_videos(session_id: str) -> dict:
     """
     Get all public video URLs for a specific property by its ID (getting property_id from session).
+    Tracks if videos have already been sent for this session and property.
     """
     db = SessionLocal()
     try:
@@ -1445,6 +1489,28 @@ def get_property_videos(session_id: str) -> dict:
             
         property_id = session.property_id
         
+        # Check if videos have already been sent for this session and property
+        existing_record = db.query(VideoSent).filter_by(
+            session_id=session_id, 
+            property_id=property_id
+        ).first()
+        
+        if existing_record:
+            # Get property name for better user experience
+            property_name = "this property"
+            if session.property and session.property.name:
+                property_name = session.property.name
+            
+            return {
+                "success": True,
+                "message": f"I have already sent you videos for {property_name}.",
+                "property_id": str(property_id),
+                "videos": [],
+                "videos_count": 0,
+                "already_sent": True
+            }
+        
+        # Fetch videos from database
         sql = """
             SELECT DISTINCT pv.video_url 
             FROM property_videos pv
@@ -1456,19 +1522,41 @@ def get_property_videos(session_id: str) -> dict:
 
         video_urls = [row[0].strip() for row in result if row[0] and row[0].strip()]
 
-        return {
-            "success": True,
-            "message": "Fetched video URLs successfully" if video_urls else "No videos found",
-            "property_id": str(property_id),
-            "videos": video_urls,
-            "videos_count": len(video_urls)
-        }
+        if video_urls:
+            # Create record to track that videos have been sent
+            video_sent_record = VideoSent(
+                session_id=session_id,
+                property_id=property_id
+            )
+            db.add(video_sent_record)
+            db.commit()
+            
+            return {
+                "success": True,
+                "message": "Fetched video URLs successfully",
+                "property_id": str(property_id),
+                "videos": video_urls,
+                "videos_count": len(video_urls),
+                "already_sent": False
+            }
+        else:
+            return {
+                "success": True,
+                "message": "No videos found",
+                "property_id": str(property_id),
+                "videos": [],
+                "videos_count": 0,
+                "already_sent": False
+            }
         
     except Exception as e:
         print(f"Error getting property videos: {e}")
         return {"success": False, "message": "❌ Error getting property videos"}
     finally:
         db.close()
+
+
+
 
 @tool("check_availability_of_property")
 def check_availability_of_property(session_id: str, dates: List[str]) -> dict:

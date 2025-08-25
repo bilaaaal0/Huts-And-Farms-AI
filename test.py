@@ -207,23 +207,23 @@ def is_valid_payment_screenshot(result: Dict) -> bool:
 # Example usage:
 
 # Test the function
-result = extract_text_from_payment_image("https://res.cloudinary.com/dxoqq3372/image/upload/v1755111930/veui7is45nctujommxur.jpg")
+# result = extract_text_from_payment_image("https://res.cloudinary.com/dxoqq3372/image/upload/v1755111930/veui7is45nctujommxur.jpg")
 
 
-if result["success"]:
-    if result["is_payment_screenshot"]:
-        print("✅ Valid payment screenshot detected!")
-        print(f"Confidence: {result['confidence_score']:.2f}")
+# if result["success"]:
+#     if result["is_payment_screenshot"]:
+#         print("✅ Valid payment screenshot detected!")
+#         print(f"Confidence: {result['confidence_score']:.2f}")
         
-        # Use helper function for validation
-        if is_valid_payment_screenshot(result):
-            print("💰 Payment data extraction successful!")
-            # Process the payment data
-            payment_data = result["extracted_data"]
-        else:
-            print("⚠️ Low confidence or insufficient payment data")
-    else:
-        print("❌ This is not a payment screenshot")
-        print(f"Image contains: {result['extracted_data']['raw_text']}")
-else:
-    print(f"❌ Error: {result['error']}")
+#         # Use helper function for validation
+#         if is_valid_payment_screenshot(result):
+#             print("💰 Payment data extraction successful!")
+#             # Process the payment data
+#             payment_data = result["extracted_data"]
+#         else:
+#             print("⚠️ Low confidence or insufficient payment data")
+#     else:
+#         print("❌ This is not a payment screenshot")
+#         print(f"Image contains: {result['extracted_data']['raw_text']}")
+# else:
+#     print(f"❌ Error: {result['error']}")

@@ -15,8 +15,8 @@ class Session(Base):
     id = Column(String(64), primary_key=True, index=True)  # Use a UUID string or similar
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.user_id"), nullable=False)  # Foreign key to users
     created_at = Column(DateTime, default=datetime.utcnow)
-    booking_id = Column(String(64), nullable=True)  # Booking ID if this session is related to a booking
-    property_id = Column(String(64), nullable=True)
+    booking_id = Column(Text, nullable=True)  # Booking ID if this session is related to a booking
+    property_id = Column(UUID(as_uuid=True), ForeignKey("properties.property_id"), nullable=True)
     property_type = Column(Enum("hut", "farm", name="property_type_enum"), nullable=True)
     booking_date = Column(DateTime, nullable=True)  # Date of the booking
     shift_type = Column(Enum("Day", "Night", "Full Day", "Full Night", name="shift_type_enum"), nullable=True)  # Type of booking shift
@@ -24,7 +24,7 @@ class Session(Base):
     max_price = Column(Numeric(10, 2), nullable=True)  # Maximum
     max_occupancy = Column(Integer, nullable=True)  # Maximum occupancy for the booking
     user = relationship("User", backref="sessions")  # Relationship to User model
-
+    property = relationship("Property", backref = "sessions")
 
 class Message(Base):
     __tablename__ = "messages"
@@ -43,12 +43,27 @@ class Message(Base):
     user = relationship("User", backref= "messages")
 
 
+class ImageSent(Base):
+    __tablename__ = "imageSent"
+    id = Column(Integer, primary_key=True, index=True)
+    session_id = Column(String(64), ForeignKey("sessions.id"), nullable=False)
+    property_id = Column(UUID(as_uuid=True), ForeignKey("properties.property_id"), nullable=False)
 
+    session = relationship("Session", backref="imageSent")
+    property = relationship("Property",backref="imageSent")
 
+class VideoSent(Base):
+    __tablename__ = "videoSent"
+    id = Column(Integer, primary_key=True, index=True)
+    session_id = Column(String(64), ForeignKey("sessions.id"), nullable=False)
+    property_id = Column(UUID(as_uuid=True), ForeignKey("properties.property_id"), nullable=False)
+    session = relationship("Session", backref="videoSent")
+    property = relationship("Property",backref="videoSent")
 
 
 # ✅ Properties
 class Property(Base):
+
     __tablename__ = "properties"
     __table_args__ = (UniqueConstraint("username", name="unique_property_username"),)
 

@@ -12,7 +12,12 @@ import os
 from dotenv import load_dotenv
 from typing import Optional
 from datetime import datetime, timedelta
+from app.scheduler import start_cleanup_scheduler
+
+
 models.Base.metadata.create_all(bind=engine)
+
+start_cleanup_scheduler()
 
 app = FastAPI()
 
@@ -30,6 +35,8 @@ load_dotenv()
 VERIFY_TOKEN = "my_custom_secret_token"
 WHATSAPP_TOKEN = os.getenv("META_ACCESS_TOKEN")
 PHONE_NUMBER_ID = os.getenv("META_PHONE_NUMBER_ID")
+
+
 
 def decode_certificate(cert_base64: str) -> dict:
     """
