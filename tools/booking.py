@@ -554,9 +554,10 @@ def create_booking(
             return {"error": "Please provide me your Full name for booking"}
 
         if cnic and not session.user.cnic:
+            cnic = remove_dash_from_cnic(cnic)
             if len(cnic)!=13:
                 return {"error":"Please enter 13 digit CNIC"}
-            cnic = remove_dash_from_cnic(cnic)
+            
             session.user.cnic = cnic
 
         
