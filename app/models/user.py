@@ -34,6 +34,10 @@ class Session(Base):
     max_occupancy = Column(Integer, nullable=True)  # Maximum occupancy for the booking
     source = Column(String, nullable=True)  # Session source: Website or Chatbot
     
+    # Booking contact details (temporary, for current booking only)
+    booking_name = Column(Text, nullable=True)  # Name for this specific booking
+    booking_cnic = Column(Text, nullable=True)  # CNIC for this specific booking
+    
     # Memory management fields
     conversation_summary = Column(Text, nullable=True)  # Compressed conversation summary
     summary_updated_at = Column(DateTime, nullable=True)  # When summary was last updated

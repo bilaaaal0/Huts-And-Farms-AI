@@ -89,7 +89,8 @@ def create_booking(
             shift_type=shift_type,
             user_name=user_name,
             cnic=cnic,
-            booking_source="Bot"
+            booking_source="Bot",
+            session_id=session_id  # Pass session_id to read/clear booking contact details
         )
         
         # Update session with booking_id if successful

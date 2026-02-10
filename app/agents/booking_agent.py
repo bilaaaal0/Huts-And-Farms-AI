@@ -265,7 +265,13 @@ CRITICAL BOOKING FLOW RULES:
    - CRITICAL: Call this tool ONLY ONCE per user response, then STOP and wait for next message
    - DO NOT call prepare_booking_details multiple times in the same turn
    
-   **STEP 4: ONLY when tool returns ready=true → IMMEDIATELY call create_booking**
+   **STEP 4: Check the tool response carefully**
+   - If tool returns ready=false → STOP! Show the questions/form to user and WAIT for their response
+   - If tool returns editing=true → User wants to edit, show the edit form and WAIT
+   - If tool returns needs_confirmation=true → Show confirmation options and WAIT
+   - ONLY when tool returns ready=true → Proceed to STEP 5
+   
+   **STEP 5: ONLY when ready=true → IMMEDIATELY call create_booking**
    - CRITICAL: When prepare_booking_details returns ready=true, you MUST call create_booking IMMEDIATELY
    - Pass the user_name and cnic from prepare_booking_details response
    - create_booking(session_id, booking_date, shift_type, cnic=<from_response>, user_name=<from_response>)
@@ -273,7 +279,9 @@ CRITICAL BOOKING FLOW RULES:
    - DO NOT show any message before calling create_booking
    - Just call the tool immediately
    
-   **NEVER call create_booking without prepare_booking_details returning ready=true!**
+   **NEVER call create_booking when ready=false!**
+   **NEVER call create_booking when user is editing (editing=true)!**
+   **NEVER call create_booking when waiting for confirmation (needs_confirmation=true)!**
 
 4. If browsing → Don't force booking
 
@@ -341,8 +349,7 @@ class BookingToolAgent:
 
         self.agent = create_react_agent(
             model=self.llm,
-            tools=self.tools,
-            state_modifier=self.prompt
+            tools=self.tools
         )
 
   
@@ -445,8 +452,6 @@ class BookingToolAgent:
         # Format the system prompt with session context
         formatted_system_prompt = system_prompt.format(
             session_id=session_id,
-            name=name,
-            cnic=cnic if cnic else "None",
             date=date.today().isoformat(),
             property_type=property_type,
             booking_date=booking_date,
@@ -456,31 +461,19 @@ class BookingToolAgent:
             max_occupancy=max_occupancy
         )
         
-        # Create a temporary prompt with the formatted system message
-        temp_prompt = ChatPromptTemplate(
-            [
-                ("system", formatted_system_prompt),
-                MessagesPlaceholder(variable_name='messages'),
-            ]
-        )
-        
-        # Create a temporary agent with the formatted prompt (NO structured output)
-        temp_agent = create_react_agent(
-            model=self.llm,
-            tools=self.tools,
-            state_modifier=temp_prompt
-        )
+        # Prepend formatted system prompt to messages
+        formatted_messages = [("system", formatted_system_prompt)] + messages
         
         # Get regular response from agent
         print("\n" + "="*80)
         print("🔧 CALLING AGENT WITH TOOLS")
         print("="*80)
         print(f"Available tools: {[tool.name for tool in self.tools]}")
-        print(f"Message count: {len(messages)}")
+        print(f"Message count: {len(formatted_messages)}")
         print("="*80 + "\n")
         
-        response = temp_agent.invoke({
-            "messages": messages,
+        response = self.agent.invoke({
+            "messages": formatted_messages,
         })
         
         # Log all messages in the response (including tool calls)

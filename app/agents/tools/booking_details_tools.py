@@ -48,6 +48,16 @@ def prepare_booking_details(
     Step 2: User provides/confirms details → Call with user_name/cnic/action
     Step 3: If ready=true → Call create_booking
     
+    CRITICAL RESPONSE HANDLING:
+    • ready=false → STOP! Show questions to user and WAIT for response
+    • editing=true → User is editing, show form and WAIT
+    • needs_confirmation=true → Show confirm/edit options and WAIT
+    • ready=true → NOW you can call create_booking
+    
+    DO NOT call create_booking when ready=false!
+    DO NOT call create_booking when editing=true!
+    DO NOT call create_booking when needs_confirmation=true!
+    
     PARAMS:
     • session_id - Required, current session
     • user_name - Optional, user's full name
@@ -91,11 +101,13 @@ def prepare_booking_details(
         if not user:
             return {"error": "User not found in session."}
         
-        # Get current values from user table (READ ONLY - never update user table!)
-        current_name = user.name
-        current_cnic = user.cnic
+        # Get current values from SESSION (booking-specific, temporary)
+        # Fall back to user profile if not set in session
+        current_name = session.booking_name or user.name
+        current_cnic = session.booking_cnic or user.cnic
         
-        print(f"Current user values (READ ONLY) - Name: {current_name}, CNIC: {current_cnic}")
+        print(f"Current session booking values - Name: {current_name}, CNIC: {current_cnic}")
+        print(f"User profile values (unchanged) - Name: {user.name}, CNIC: {user.cnic}")
         
         # ========================================
         # CASE 1: User is providing/updating details
@@ -155,11 +167,15 @@ def prepare_booking_details(
                     "instruction": "Show ONLY the error message and edit form. Do NOT add any additional text or options."
                 }
             
-            # All validations passed - return details for booking (DON'T save anywhere!)
-            print(f"✅ Booking details validated - Name: {final_name}, CNIC: {final_cnic}")
-            print(f"   User table NOT modified - Name: {user.name}, CNIC: {user.cnic}")
+            # All validations passed - SAVE to session (temporary, for this booking only)
+            session.booking_name = final_name
+            session.booking_cnic = final_cnic
+            db.commit()
             
-            # Return validated details for create_booking to use
+            print(f"✅ Booking details saved to session - Name: {final_name}, CNIC: {final_cnic}")
+            print(f"   User profile unchanged - Name: {user.name}, CNIC: {user.cnic}")
+            
+            # Return ready status for create_booking
             return {
                 "ready": True,
                 "confirmed": True,

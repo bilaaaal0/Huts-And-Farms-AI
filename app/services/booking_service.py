@@ -61,18 +61,20 @@ class BookingService:
         shift_type: str,
         user_name: Optional[str] = None,
         cnic: Optional[str] = None,
-        booking_source: str = "Bot"
+        booking_source: str = "Bot",
+        session_id: Optional[str] = None
     ) -> Dict[str, Any]:
         """
         Create a new booking with validation and availability checking.
         
         This method:
-        1. Validates user information and updates if needed
+        1. Validates user information (reads from session or user profile)
         2. Validates shift type
         3. Checks property availability
         4. Retrieves pricing information
         5. Creates the booking with Pending status
-        6. Returns formatted confirmation message
+        6. Clears session booking contact details
+        7. Returns formatted confirmation message
         
         Args:
             db: Database session
@@ -80,9 +82,10 @@ class BookingService:
             property_id: Property's unique identifier
             booking_date: Date for the booking
             shift_type: Type of shift (Day, Night, Full Day, Full Night)
-            user_name: Optional user's full name (updates user if provided)
-            cnic: Optional user's CNIC (updates user if provided)
+            user_name: Optional user's full name (from prepare_booking_details)
+            cnic: Optional user's CNIC (from prepare_booking_details)
             booking_source: Source of booking (Bot, Website, Third-Party)
+            session_id: Optional session ID (to read/clear booking contact details)
         
         Returns:
             Dict containing:
@@ -100,7 +103,8 @@ class BookingService:
             ...     booking_date=datetime(2024, 12, 25),
             ...     shift_type="Day",
             ...     user_name="John Doe",
-            ...     cnic="1234567890123"
+            ...     cnic="1234567890123",
+            ...     session_id="session-abc"
             ... )
             >>> if result["success"]:
             ...     print(result["booking_id"])
@@ -115,10 +119,29 @@ class BookingService:
                     "error": "User not found"
                 }
             
-            # Check if user name and CNIC are required
-            # Use provided values OR existing user values (don't update user table!)
-            final_name = user_name if user_name else user.name
-            final_cnic = cnic if cnic else user.cnic
+            # Get session if session_id provided (to read booking contact details)
+            session = None
+            if session_id:
+                from app.repositories.session_repository import SessionRepository
+                session_repo = SessionRepository()
+                session = session_repo.get_by_id(db, session_id)
+            
+            # Priority order for name/CNIC:
+            # 1. Provided parameters (from prepare_booking_details tool)
+            # 2. Session booking fields (temporary, for this booking)
+            # 3. User profile (permanent)
+            final_name = user_name
+            final_cnic = cnic
+            
+            if not final_name and session:
+                final_name = session.booking_name
+            if not final_name:
+                final_name = user.name
+                
+            if not final_cnic and session:
+                final_cnic = session.booking_cnic
+            if not final_cnic:
+                final_cnic = user.cnic
             
             if not final_name:
                 return {
@@ -216,6 +239,13 @@ class BookingService:
             }
             
             booking = self.booking_repo.create(db, booking_data)
+            
+            # Clear session booking contact details after successful booking
+            if session:
+                session.booking_name = None
+                session.booking_cnic = None
+                db.commit()
+                print(f"✅ Cleared session booking contact details after booking creation")
             
             logger.info(f"Booking created successfully: {booking_id}")
             
