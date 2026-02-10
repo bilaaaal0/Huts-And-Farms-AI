@@ -84,11 +84,8 @@ def prepare_memory(
         # Load last 6 raw messages (enough to summarize, not too many)
         recent_messages = _load_recent_messages(db, user_id, limit=6)
         
-        # STEP 2: Append incoming message (temporarily, not saved yet)
-        recent_messages.append({
-            "role": "user",
-            "content": incoming_text
-        })
+        # STEP 2: The incoming message is already saved to DB and included in recent_messages
+        # We need to exclude it from summarization since it's the current message being processed
         
         # STEP 3: Decide if summarization is needed (DETERMINISTIC)
         needs_summary = should_summarize(
@@ -101,9 +98,13 @@ def prepare_memory(
         if needs_summary:
             print(f"🧠 Triggering summarization for session {session_id}")
             
+            # Exclude the last message (incoming message) from summary
+            # Only summarize the conversation history BEFORE the current message
+            messages_to_summarize = recent_messages[:-1] if len(recent_messages) > 0 else []
+            
             new_summary = generate_summary(
                 previous_summary=existing_summary,
-                recent_messages=recent_messages[:-1],  # Exclude current message from summary
+                recent_messages=messages_to_summarize,
                 session_state=_extract_session_state(session),
                 generation_count=session.summary_generation_count or 0
             )

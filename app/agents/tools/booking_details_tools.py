@@ -91,11 +91,11 @@ def prepare_booking_details(
         if not user:
             return {"error": "User not found in session."}
         
-        # Get current values from database
+        # Get current values from user table (READ ONLY - never update user table!)
         current_name = user.name
         current_cnic = user.cnic
         
-        print(f"Current DB values - Name: {current_name}, CNIC: {current_cnic}")
+        print(f"Current user values (READ ONLY) - Name: {current_name}, CNIC: {current_cnic}")
         
         # ========================================
         # CASE 1: User is providing/updating details
@@ -155,22 +155,16 @@ def prepare_booking_details(
                     "instruction": "Show ONLY the error message and edit form. Do NOT add any additional text or options."
                 }
             
-            # All validations passed - update user
-            user.name = final_name
-            user.cnic = final_cnic
+            # All validations passed - return details for booking (DON'T save anywhere!)
+            print(f"✅ Booking details validated - Name: {final_name}, CNIC: {final_cnic}")
+            print(f"   User table NOT modified - Name: {user.name}, CNIC: {user.cnic}")
             
-            # Save valid updates
-            db.commit()
-            db.refresh(user)
-            
-            print(f"✅ Details saved - Name: {user.name}, CNIC: {user.cnic}")
-            
-            # Both fields are now valid and saved
+            # Return validated details for create_booking to use
             return {
                 "ready": True,
                 "confirmed": True,
-                "user_name": user.name,
-                "cnic": user.cnic,
+                "user_name": final_name,
+                "cnic": final_cnic,
                 "main_message": "✅ Details confirmed! Creating your booking..."
             }
         

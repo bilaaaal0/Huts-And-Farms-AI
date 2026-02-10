@@ -116,28 +116,23 @@ class BookingService:
                 }
             
             # Check if user name and CNIC are required
-            needs_name = not user.name and not user_name
-            needs_cnic = not user.cnic and not cnic
+            # Use provided values OR existing user values (don't update user table!)
+            final_name = user_name if user_name else user.name
+            final_cnic = cnic if cnic else user.cnic
             
-            if needs_name and needs_cnic:
-                return {
-                    "success": False,
-                    "error": "Please provide your full name and CNIC for booking"
-                }
-            elif needs_cnic:
-                return {
-                    "success": False,
-                    "error": "Please provide your CNIC for booking"
-                }
-            elif needs_name:
+            if not final_name:
                 return {
                     "success": False,
                     "error": "Please provide your full name for booking"
                 }
             
-            # Update user information if provided and different from existing
-            updated = False
+            if not final_cnic:
+                return {
+                    "success": False,
+                    "error": "Please provide your CNIC for booking"
+                }
             
+            # Validate CNIC if provided
             if cnic:
                 # Remove dashes from CNIC
                 cnic_clean = cnic.replace("-", "")
@@ -149,21 +144,11 @@ class BookingService:
                         "error": f"Please enter {CNIC_LENGTH} digit CNIC"
                     }
                 
-                # Only update if different from existing
-                if user.cnic != cnic_clean:
-                    user.cnic = cnic_clean
-                    updated = True
+                final_cnic = cnic_clean
             
-            if user_name:
-                # Only update if different from existing
-                if user.name != user_name:
-                    user.name = user_name
-                    updated = True
-            
-            # Commit user updates only if something changed
-            if updated:
-                db.commit()
-                db.refresh(user)
+            # DON'T update user table - just use the values for this booking
+            print(f"📝 Using booking details - Name: {final_name}, CNIC: {final_cnic}")
+            print(f"   User profile unchanged - Name: {user.name}, CNIC: {user.cnic}")
             
             # Validate shift type
             if shift_type not in VALID_SHIFT_TYPES:
@@ -208,11 +193,11 @@ class BookingService:
                 }
             
             # Create booking ID
-            booking_id = f"{user.name}-{booking_date.strftime('%Y-%m-%d')}-{shift_type}"
+            booking_id = f"{final_name}-{booking_date.strftime('%Y-%m-%d')}-{shift_type}"
             
-            # Format contact details for storage
-            formatted_cnic = f"{user.cnic[:5]}-{user.cnic[5:12]}-{user.cnic[12]}" if user.cnic and len(user.cnic) == 13 else user.cnic
-            contact_details = f"Name: {user.name}, CNIC: {formatted_cnic}"
+            # Format contact details for storage (use booking details, not user profile)
+            formatted_cnic = f"{final_cnic[:5]}-{final_cnic[5:12]}-{final_cnic[12]}" if final_cnic and len(final_cnic) == 13 else final_cnic
+            contact_details = f"Name: {final_name}, CNIC: {formatted_cnic}"
             
             # Create booking
             booking_data = {

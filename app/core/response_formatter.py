@@ -403,6 +403,18 @@ IMPORTANT: ONLY extract information that is EXPLICITLY present in the raw respon
             # Use structured LLM to format the response
             formatted_prompt = self.formatting_prompt.format(raw_response=raw_response)
             
+            # Print complete prompt details
+            print("\n" + "="*80)
+            print("📝 FORMATTER AGENT - COMPLETE PROMPT")
+            print("="*80)
+            print(f"Total Prompt Length: {len(formatted_prompt)} characters")
+            print(f"Estimated Tokens: ~{len(formatted_prompt) // 4} tokens (rough estimate)")
+            print("-" * 80)
+            print("FULL PROMPT:")
+            print("-" * 80)
+            print(formatted_prompt)
+            print("="*80 + "\n")
+            
             structured_response = self.structured_llm.invoke(formatted_prompt)
             
             print("\n" + "="*80)

@@ -249,6 +249,7 @@ CRITICAL BOOKING FLOW RULES:
    - This tool checks if user has name and CNIC
    - Returns questions if missing or confirmation choice if exists
    - NEVER skip this step!
+   - Call this tool ONLY ONCE, then wait for user response
    
    **STEP 2: Show tool response to user EXACTLY as returned**
    - Use ONLY the message and questions from tool response
@@ -257,14 +258,20 @@ CRITICAL BOOKING FLOW RULES:
    - DO NOT add confirmation options when tool returns edit form
    - Let the tool handle ALL messaging
    
-   **STEP 3: Call prepare_booking_details again with user input**
+   **STEP 3: Call prepare_booking_details ONCE with user input**
    - Pass user_name, cnic, or action based on user response
    - Tool will validate and save details
    - If validation fails, tool returns edit form again - show it WITHOUT adding extra text
+   - CRITICAL: Call this tool ONLY ONCE per user response, then STOP and wait for next message
+   - DO NOT call prepare_booking_details multiple times in the same turn
    
-   **STEP 4: ONLY when tool returns ready=true → Call create_booking**
-   - create_booking(session_id, booking_date, shift_type)
-   - NO need to pass cnic/user_name - already saved by prepare_booking_details!
+   **STEP 4: ONLY when tool returns ready=true → IMMEDIATELY call create_booking**
+   - CRITICAL: When prepare_booking_details returns ready=true, you MUST call create_booking IMMEDIATELY
+   - Pass the user_name and cnic from prepare_booking_details response
+   - create_booking(session_id, booking_date, shift_type, cnic=<from_response>, user_name=<from_response>)
+   - DO NOT ask user for confirmation again
+   - DO NOT show any message before calling create_booking
+   - Just call the tool immediately
    
    **NEVER call create_booking without prepare_booking_details returning ready=true!**
 
@@ -281,8 +288,6 @@ SESSION AWARENESS:
 
 **SESSION CONTEXT**
 Session: {session_id}
-User: {name}
-User CNIC: {cnic}
 Date: {date}
 
 Search:
@@ -430,6 +435,7 @@ class BookingToolAgent:
             messages.append(("system", f"📝 Conversation Summary: {memory_context.summary}"))
         
         # Add recent messages (last 4 only)
+        # Note: recent_messages already includes the incoming message since it was saved to DB first
         for msg in memory_context.recent_messages:
             if msg["role"] == "user":
                 messages.append(("human", msg["content"]))
